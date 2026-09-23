@@ -7,13 +7,17 @@ import {
   Minus, 
   Maximize2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Share2,
+  MessageCircle
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { calculateDiscountedPrice, formatCurrency } from '../lib/utils';
 import { ImageZoomModal } from '../components/common/ImageZoomModal';
+import { ShareModal } from '../components/common/ShareModal';
+import { getProductWhatsAppShareUrl } from '../lib/share';
 import { ProductCard } from '../components/common/ProductCard';
 import { toast } from 'sonner';
 
@@ -33,6 +37,7 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState<number>(1);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
   // Initialize selected variants from admin's actual product variants
   useEffect(() => {
@@ -138,24 +143,34 @@ export const ProductDetailPage: React.FC = () => {
             Details
           </h2>
 
-          <button
-            onClick={() => {
-              toggleWishlist(product);
-              if (isWished) {
-                toast.info('Removed from wishlist');
-              } else {
-                toast.success('Saved to wishlist');
-              }
-            }}
-            className="w-10 h-10 rounded-full bg-white shadow-sm border border-neutral-100 flex items-center justify-center hover:bg-neutral-50 active:scale-95 transition-all"
-            title={isWished ? "In Wishlist" : "Add to Wishlist"}
-          >
-            <Heart 
-              className={`w-5 h-5 ${
-                isWished ? 'fill-honey text-honey stroke-honey' : 'text-neutral-500 stroke-[1.8]'
-              }`} 
-            />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="w-10 h-10 rounded-full bg-white shadow-sm border border-neutral-100 flex items-center justify-center text-neutral-700 hover:bg-neutral-50 active:scale-95 transition-all"
+              title="Share Product"
+            >
+              <Share2 className="w-4 h-4 text-neutral-600 stroke-[2]" />
+            </button>
+
+            <button
+              onClick={() => {
+                toggleWishlist(product);
+                if (isWished) {
+                  toast.info('Removed from wishlist');
+                } else {
+                  toast.success('Saved to wishlist');
+                }
+              }}
+              className="w-10 h-10 rounded-full bg-white shadow-sm border border-neutral-100 flex items-center justify-center hover:bg-neutral-50 active:scale-95 transition-all"
+              title={isWished ? "In Wishlist" : "Add to Wishlist"}
+            >
+              <Heart 
+                className={`w-5 h-5 ${
+                  isWished ? 'fill-honey text-honey stroke-honey' : 'text-neutral-500 stroke-[1.8]'
+                }`} 
+              />
+            </button>
+          </div>
         </div>
 
         {/* Hero Showcase with #f5f5f5 Background and Stacked Thumbnails (Screen 2) */}
@@ -470,6 +485,40 @@ export const ProductDetailPage: React.FC = () => {
             </button>
           </div>
 
+          {/* Share Product Bar (WhatsApp & Social) */}
+          <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-neutral-500">
+              Share with friends:
+            </span>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const url = getProductWhatsAppShareUrl(
+                    product, 
+                    formatCurrency(finalPrice, settings.currencySymbol)
+                  );
+                  window.open(url, '_blank');
+                }}
+                className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:scale-95 text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5"
+                title="Share on WhatsApp"
+              >
+                <MessageCircle className="w-3.5 h-3.5 fill-white" />
+                <span>WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 active:scale-95 text-neutral-800 text-xs font-semibold transition-all flex items-center space-x-1.5"
+                title="More Sharing Options"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Share</span>
+              </button>
+            </div>
+          </div>
+
         </div>
 
         {/* Related Products in same Category */}
@@ -493,6 +542,12 @@ export const ProductDetailPage: React.FC = () => {
         onClose={() => setIsZoomModalOpen(false)}
         images={images}
         initialIndex={selectedImageIndex}
+      />
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        product={product}
       />
 
     </div>

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart } from 'lucide-react';
+import { Heart, Share2 } from 'lucide-react';
 import { Product } from '../../types';
 import { formatCurrency, calculateDiscountedPrice } from '../../lib/utils';
 import { useWishlist } from '../../context/WishlistContext';
 import { useStore } from '../../context/StoreContext';
+import { ShareModal } from './ShareModal';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -14,6 +15,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { settings } = useStore();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
   const isWished = isInWishlist(product.id);
   const { finalPrice, originalPrice, hasDiscount } = calculateDiscountedPrice(
@@ -64,20 +66,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
         )}
 
-        {/* Floating Circular Wishlist Button at Top-Right */}
-        <button
-          onClick={handleWishlistToggle}
-          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-          title={isWished ? "Remove from wishlist" : "Add to wishlist"}
-        >
-          <Heart 
-            className={`w-4 h-4 transition-colors ${
-              isWished 
-                ? 'fill-honey text-honey stroke-honey' 
-                : 'text-neutral-500 stroke-[1.8]'
-            }`} 
-          />
-        </button>
+        {/* Floating Actions at Top-Right (Share & Wishlist) */}
+        <div className="absolute top-2.5 right-2.5 z-10 flex items-center space-x-1.5">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsShareOpen(true);
+            }}
+            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center hover:scale-110 active:scale-95 transition-all text-neutral-600 hover:text-neutral-900"
+            title="Share product"
+          >
+            <Share2 className="w-3.5 h-3.5 stroke-[2]" />
+          </button>
+
+          <button
+            onClick={handleWishlistToggle}
+            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+            title={isWished ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <Heart 
+              className={`w-4 h-4 transition-colors ${
+                isWished 
+                  ? 'fill-honey text-honey stroke-honey' 
+                  : 'text-neutral-500 stroke-[1.8]'
+              }`} 
+            />
+          </button>
+        </div>
       </Link>
 
       {/* Product Details - Name & Category on Left, Price & Discount on Right */}
@@ -109,6 +125,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
       </div>
+
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        product={product}
+      />
 
     </div>
   );

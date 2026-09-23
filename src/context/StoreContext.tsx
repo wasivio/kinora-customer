@@ -12,7 +12,7 @@ import { Product, Category, Banner, Coupon, StoreSettings } from '../types';
 const defaultSettings: StoreSettings = {
   storeName: 'KINORA',
   storeEmail: 'contact@kinora.com',
-  storePhone: '+91 98765 43210',
+  storePhone: '+91 8810519646',
   currency: 'INR',
   currencySymbol: '₹',
   taxRate: 0,
