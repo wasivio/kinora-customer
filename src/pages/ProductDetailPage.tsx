@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Share2,
-  MessageCircle
+  MessageCircle,
+  Sparkles
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
@@ -17,6 +18,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { calculateDiscountedPrice, formatCurrency } from '../lib/utils';
 import { ImageZoomModal } from '../components/common/ImageZoomModal';
 import { ShareModal } from '../components/common/ShareModal';
+import { TryOnModal } from '../components/common/TryOnModal';
 import { getProductWhatsAppShareUrl } from '../lib/share';
 import { ProductCard } from '../components/common/ProductCard';
 import { toast } from 'sonner';
@@ -38,6 +40,7 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(1);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [isTryOnModalOpen, setIsTryOnModalOpen] = useState<boolean>(false);
 
   // Initialize selected variants from admin's actual product variants
   useEffect(() => {
@@ -204,12 +207,27 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Zoom Trigger (only if image exists) */}
           {images.length > 0 && (
+            <div className="absolute bottom-3 left-3 flex items-center space-x-2">
+              <button
+                onClick={() => setIsZoomModalOpen(true)}
+                className="p-2 rounded-full bg-white/90 hover:bg-white text-neutral-700 shadow-sm transition-colors"
+                title="Zoom image"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Floating Virtual Try-On Badge on Image */}
+          {images.length > 0 && (
             <button
-              onClick={() => setIsZoomModalOpen(true)}
-              className="absolute bottom-3 left-3 p-2 rounded-full bg-white/80 hover:bg-white text-neutral-700 shadow-sm transition-colors"
-              title="Zoom image"
+              type="button"
+              onClick={() => setIsTryOnModalOpen(true)}
+              className="absolute bottom-3 right-3 sm:right-4 z-10 px-3.5 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-900 text-white text-xs font-bold shadow-md backdrop-blur-md flex items-center space-x-1.5 active:scale-95 transition-all"
+              title="Virtual AI Fitting Room"
             >
-              <Maximize2 className="w-4 h-4" />
+              <Sparkles className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span>Try On</span>
             </button>
           )}
 
@@ -467,6 +485,18 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           )}
 
+          {/* Virtual AI Try-On / Fitting Room Banner */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setIsTryOnModalOpen(true)}
+              className="w-full py-3.5 px-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center space-x-2.5 transition-all shadow-md active:scale-[0.99] border border-neutral-700/30 group"
+            >
+              <Sparkles className="w-4 h-4 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span>Try On This Product (AI Fitting Room)</span>
+            </button>
+          </div>
+
           {/* Dual Action Buttons matching Screen 2 (Add to Cart & Buy Now) */}
           <div className="flex items-center space-x-3 pt-2">
             <button
@@ -547,6 +577,12 @@ export const ProductDetailPage: React.FC = () => {
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
+        product={product}
+      />
+
+      <TryOnModal
+        isOpen={isTryOnModalOpen}
+        onClose={() => setIsTryOnModalOpen(false)}
         product={product}
       />
 
