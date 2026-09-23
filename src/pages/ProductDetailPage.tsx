@@ -218,16 +218,21 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Floating Virtual Try-On Badge on Image */}
+          {/* Floating Virtual Try-On Badge on Image (Coming Soon) */}
           {images.length > 0 && (
             <button
               type="button"
-              onClick={() => setIsTryOnModalOpen(true)}
+              onClick={() => {
+                toast.info('✨ Virtual AI Try-On (Fitting Room) is coming soon! Stay tuned.');
+              }}
               className="absolute bottom-3 right-3 sm:right-4 z-10 px-3.5 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-900 text-white text-xs font-bold shadow-md backdrop-blur-md flex items-center space-x-1.5 active:scale-95 transition-all"
-              title="Virtual AI Fitting Room"
+              title="Virtual AI Fitting Room (Coming Soon)"
             >
               <Sparkles className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
               <span>Try On</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/25 text-amber-300 text-[9px] font-semibold tracking-wide">
+                Coming Soon
+              </span>
             </button>
           )}
 
@@ -485,15 +490,20 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Virtual AI Try-On / Fitting Room Banner */}
+          {/* Virtual AI Try-On / Fitting Room Banner (Coming Soon) */}
           <div className="pt-2">
             <button
               type="button"
-              onClick={() => setIsTryOnModalOpen(true)}
-              className="w-full py-3.5 px-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center space-x-2.5 transition-all shadow-md active:scale-[0.99] border border-neutral-700/30 group"
+              onClick={() => {
+                toast.info('✨ Virtual AI Try-On (Fitting Room) is coming soon! Stay tuned.');
+              }}
+              className="w-full py-3.5 px-4 rounded-2xl bg-neutral-900/95 hover:bg-neutral-900 text-white text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center space-x-2.5 transition-all shadow-md active:scale-[0.99] border border-neutral-700/30 group"
             >
               <Sparkles className="w-4 h-4 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
-              <span>Try On This Product (AI Fitting Room)</span>
+              <span>Try On This Product</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-bold tracking-normal normal-case border border-amber-400/30">
+                Coming Soon
+              </span>
             </button>
           </div>
 
