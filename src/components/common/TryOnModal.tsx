@@ -53,6 +53,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [savedLooks, setSavedLooks] = useState<TryOnLook[]>([]);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [needApiKeyNotice, setNeedApiKeyNotice] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -163,6 +164,40 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
 
     setIsProcessing(true);
 
+    // 1. Try Photorealistic AI Virtual Try-On API first (FASHN.ai or Replicate)
+    try {
+      const apiRes = await fetch('/api/virtual-tryon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personImage: userPhoto,
+          garmentImage: primaryProductImgUrl,
+          garmentType,
+          garmentName: product.name,
+        }),
+      });
+
+      const apiData = await apiRes.json();
+      if (apiData.success && apiData.imageUrl) {
+        setResultImage(apiData.imageUrl);
+        await saveLocalTryOnLook({
+          productId: product.id,
+          productName: product.name,
+          garmentType,
+          imageUri: apiData.imageUrl,
+        });
+        await loadHistory();
+        toast.success('✨ Photorealistic AI Try-On generated successfully!');
+        setIsProcessing(false);
+        return;
+      } else if (apiData.needApiKey) {
+        setNeedApiKeyNotice(true);
+      }
+    } catch (apiErr) {
+      console.warn('AI Try-On API call skipped or timed out, continuing with precision canvas:', apiErr);
+    }
+
+    // 2. Precision Canvas Fitting (Positioned properly on shoulders/torso, not face)
     try {
       const userImg = new Image();
       userImg.crossOrigin = 'anonymous';
@@ -191,53 +226,53 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Could not initialize canvas context');
 
-      // 1. Draw customer photo as background
+      // Draw customer photo as background
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(userImg, 0, 0, width, height);
 
-      // 2. Compute garment sizing and positioning
+      // Compute garment sizing and positioning
       const scaleMultiplier = (garmentScale / 100);
-      let gWidth = width * 0.55 * scaleMultiplier;
+      let gWidth = width * 0.65 * scaleMultiplier;
       let gHeight = (garmentImg.height / garmentImg.width) * gWidth;
 
       // Adjust height if garment image is too tall
-      if (gHeight > height * 0.7) {
-        gHeight = height * 0.7 * scaleMultiplier;
+      if (gHeight > height * 0.65) {
+        gHeight = height * 0.65 * scaleMultiplier;
         gWidth = (garmentImg.width / garmentImg.height) * gHeight;
       }
 
       // Positioning based on Upper vs Lower wear
+      // IMPORTANT: Sits below the chin/neck on shoulders/torso, NOT over the face!
       let gX = (width - gWidth) / 2 + (horizontalOffset * (width / 500));
       let gY: number;
 
       if (garmentType === 'upper') {
-        // Position on upper chest/torso (roughly 22% - 28% from top)
-        gY = height * 0.24 + (verticalOffset * (height / 500));
+        // Position on upper chest/torso (roughly 42% - 46% from top, below chin)
+        gY = height * 0.42 + (verticalOffset * (height / 500));
       } else {
-        // Position on lower waist/legs (roughly 52% - 58% from top)
-        gY = height * 0.52 + (verticalOffset * (height / 500));
+        // Position on lower waist/legs (roughly 64% - 68% from top)
+        gY = height * 0.64 + (verticalOffset * (height / 500));
       }
 
-      // 3. Draw soft shadow beneath garment for realistic depth
+      // Draw soft shadow beneath garment for realistic depth
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-      ctx.shadowBlur = 20;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+      ctx.shadowBlur = 24;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 10;
+      ctx.shadowOffsetY = 12;
 
       // Draw garment onto customer
       ctx.drawImage(garmentImg, gX, gY, gWidth, gHeight);
       ctx.restore();
 
-      // 4. Subtle watermark badge for branding
+      // Subtle watermark badge for branding
       ctx.save();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
       const badgeW = 160;
       const badgeH = 34;
       const bX = width - badgeW - 20;
       const bY = height - badgeH - 20;
       
-      // Rounded badge rect
       ctx.beginPath();
       ctx.roundRect(bX, bY, badgeW, badgeH, 12);
       ctx.fill();
@@ -259,7 +294,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
       });
 
       await loadHistory();
-      toast.success('Try-on generated & saved locally to your device!');
+      toast.success('Fitting generated & saved locally to your device!');
     } catch (err: any) {
       console.error('Try-on generation error:', err);
       toast.error('Failed to generate try-on. Please try again with another photo.');
@@ -449,6 +484,30 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
                         alt="Your Photo"
                         className="w-full h-full object-cover"
                       />
+
+                      {/* Live Alignment Preview of Garment over Customer */}
+                      {product.images?.[0]?.url && (
+                        <div 
+                          className="absolute pointer-events-none transition-all duration-100 flex items-center justify-center"
+                          style={{
+                            top: `${garmentType === 'upper' ? 42 + (verticalOffset * 0.4) : 64 + (verticalOffset * 0.4)}%`,
+                            left: `${50 + (horizontalOffset * 0.4)}%`,
+                            width: `${garmentScale * 0.65}%`,
+                            transform: 'translate(-50%, 0)',
+                          }}
+                        >
+                          <img
+                            src={product.images[0].url}
+                            alt="Garment Preview"
+                            className="w-full h-auto object-contain opacity-95 drop-shadow-2xl"
+                          />
+                        </div>
+                      )}
+
+                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold">
+                        Live Fit Preview
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => { setUserPhoto(null); setResultImage(null); }}
@@ -590,6 +649,21 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
                         className="w-full accent-neutral-900"
                       />
                     </div>
+                  </div>
+
+                  {/* Photorealistic AI Try-On Notice */}
+                  <div className={`p-3.5 rounded-2xl border transition-all space-y-1.5 text-xs ${
+                    needApiKeyNotice 
+                      ? 'bg-amber-100/90 border-amber-400 text-amber-950 ring-2 ring-amber-300' 
+                      : 'bg-amber-50/80 border-amber-200 text-amber-900'
+                  }`}>
+                    <div className="flex items-center space-x-2 font-bold text-amber-900">
+                      <Sparkles className="w-4 h-4 fill-amber-500 text-amber-600 shrink-0" />
+                      <span>Photorealistic AI Clothing Swap</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      For AI to automatically replace your existing clothes and naturally wrap this garment onto your body shape, add your free <strong>FASHN_API_KEY</strong> (from <a href="https://fashn.ai" target="_blank" rel="noreferrer" className="underline font-bold">fashn.ai</a>) or <strong>REPLICATE_API_TOKEN</strong> (from <a href="https://replicate.com" target="_blank" rel="noreferrer" className="underline font-bold">replicate.com</a>) in <code>.env</code>.
+                    </p>
                   </div>
 
                   {/* Generate Button */}
