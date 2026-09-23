@@ -134,16 +134,17 @@ export default defineConfig(({ mode }) => {
                   const data = body ? JSON.parse(body) : {};
                   const { personImage, garmentImage, garmentType, garmentName } = data;
 
+                  const geminiKey = data.geminiApiKey || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
                   const fashnKey = env.FASHN_API_KEY || process.env.FASHN_API_KEY;
                   const replicateToken = env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN;
 
-                  if (!fashnKey && !replicateToken) {
+                  if (!geminiKey && !fashnKey && !replicateToken) {
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
                     res.end(JSON.stringify({
                       success: false,
                       needApiKey: true,
-                      message: 'AI Virtual Try-On requires an API key (FASHN.ai or Replicate) to photorealistically swap clothing onto the person body.',
+                      message: 'AI Virtual Try-On requires an API key (Google AI Studio GEMINI_API_KEY, FASHN, or Replicate) to photorealistically swap clothing onto the person body.',
                     }));
                     return;
                   }
@@ -155,7 +156,140 @@ export default defineConfig(({ mode }) => {
                     return;
                   }
 
-                  // 1. FASHN.ai Integration (Specialized for Virtual Try-On)
+                  // 1. Google AI Studio (Gemini Multimodal VTON) Integration
+                  if (geminiKey) {
+                    let lastGeminiError = '';
+                    try {
+                      // Extract pure base64 for person image
+                      const personBase64 = personImage.includes('base64,')
+                        ? personImage.split('base64,')[1]
+                        : personImage;
+
+                      // Fetch garment image and convert to base64 if it is a URL
+                      let garmentBase64 = '';
+                      let garmentMime = 'image/jpeg';
+                      if (garmentImage.startsWith('data:')) {
+                        const match = garmentImage.match(/data:([^;]+);base64,(.+)/);
+                        if (match) {
+                          garmentMime = match[1];
+                          garmentBase64 = match[2];
+                        }
+                      } else {
+                        const gRes = await fetch(garmentImage);
+                        const gBuffer = await gRes.arrayBuffer();
+                        garmentBase64 = Buffer.from(gBuffer).toString('base64');
+                        const contentType = gRes.headers.get('content-type');
+                        if (contentType) garmentMime = contentType;
+                      }
+
+                      const promptText = `TASK: Photorealistic Virtual Clothing Try-On.
+Image 1 is the customer photo. Image 2 is the clothing product (${garmentName || 'clothing'}, ${garmentType === 'upper' ? 'Upper Wear like shirt/top/jacket' : 'Lower Wear like pant/trouser/jeans'}).
+INSTRUCTIONS:
+1. Seamlessly replace whatever clothing the person in Image 1 is wearing with this exact garment from Image 2.
+2. Accurately wrap and fit the garment onto the person's body, shoulders, chest, and waist according to their pose and body structure.
+3. Keep the person's face, facial features, hair, head, skin tone, hands, posture, and the original background completely intact and authentic.
+4. Output the resulting photorealistic image of the person wearing the garment.`;
+
+                      const modelsToTry = [
+                        'gemini-2.0-flash-exp',
+                        'gemini-2.0-flash-exp-image-generation',
+                        'gemini-2.5-flash-image',
+                        'gemini-3.1-flash-image',
+                        'gemini-2.0-flash',
+                      ];
+
+                      let generatedImageBase64 = '';
+
+                      for (const model of modelsToTry) {
+                        try {
+                          const geminiRes = await fetch(
+                            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+                            {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                contents: [
+                                  {
+                                    parts: [
+                                      { text: promptText },
+                                      {
+                                        inline_data: {
+                                          mime_type: 'image/jpeg',
+                                          data: personBase64,
+                                        },
+                                      },
+                                      {
+                                        inline_data: {
+                                          mime_type: garmentMime,
+                                          data: garmentBase64,
+                                        },
+                                      },
+                                    ],
+                                  },
+                                ],
+                                generationConfig: {
+                                  responseModalities: ['TEXT', 'IMAGE'],
+                                },
+                              }),
+                            }
+                          );
+
+                          if (geminiRes.ok) {
+                            const geminiData = await geminiRes.json();
+                            const parts = geminiData?.candidates?.[0]?.content?.parts || [];
+                            for (const part of parts) {
+                              const inlineData = part.inlineData || part.inline_data;
+                              if (inlineData && inlineData.data) {
+                                generatedImageBase64 = `data:${inlineData.mimeType || inlineData.mime_type || 'image/jpeg'};base64,${inlineData.data}`;
+                                break;
+                              }
+                            }
+                            if (generatedImageBase64) break;
+                          } else {
+                            const errText = await geminiRes.text();
+                            lastGeminiError = `Model ${model} returned ${geminiRes.status}: ${errText}`;
+                            console.warn(`[Google AI Studio] ${lastGeminiError}`);
+                          }
+                        } catch (mErr: any) {
+                          lastGeminiError = mErr?.message || String(mErr);
+                          console.warn(`[Google AI Studio] Model ${model} try failed:`, mErr);
+                        }
+                      }
+
+                      if (generatedImageBase64) {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify({
+                          success: true,
+                          imageUrl: generatedImageBase64,
+                        }));
+                        return;
+                      }
+
+                      if (!fashnKey && !replicateToken && lastGeminiError) {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify({
+                          success: false,
+                          error: `Google AI Studio response: ${lastGeminiError}`,
+                        }));
+                        return;
+                      }
+                    } catch (gErr: any) {
+                      console.warn('[Google AI Studio] API attempt error:', gErr);
+                      if (!fashnKey && !replicateToken) {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify({
+                          success: false,
+                          error: gErr?.message || 'Google AI Studio request failed',
+                        }));
+                        return;
+                      }
+                    }
+                  }
+
+                  // 2. FASHN.ai Integration (Specialized for Virtual Try-On)
                   if (fashnKey) {
                     const category = garmentType === 'lower' ? 'bottoms' : 'tops';
                     const runRes = await fetch('https://api.fashn.ai/v1/run', {

@@ -14,7 +14,9 @@ import {
   Layers, 
   Sliders, 
   ExternalLink,
-  Shirt
+  Shirt,
+  Key,
+  CheckCircle2
 } from 'lucide-react';
 import { Product } from '../../types';
 import { saveLocalTryOnLook, getLocalTryOnLooks, deleteLocalTryOnLook, TryOnLook } from '../../lib/tryonStorage';
@@ -35,6 +37,13 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
   const [activeTab, setActiveTab] = useState<'studio' | 'history'>('studio');
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   
+  // Google AI Studio API Key (Local device storage)
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
+    return localStorage.getItem('kinora_gemini_api_key') || '';
+  });
+  const [tempApiKeyInput, setTempApiKeyInput] = useState<string>('');
+  const [showApiKeyDrawer, setShowApiKeyDrawer] = useState<boolean>(false);
+
   // Auto-detect garment type from product category
   const initialGarmentType = /pant|jean|trouser|bottom|short|skirt/i.test(
     `${product.category || ''} ${product.subcategory || ''} ${product.name}`
@@ -149,6 +158,22 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
     reader.readAsDataURL(file);
   };
 
+  // Save or remove Google AI Studio API Key
+  const handleSaveApiKey = () => {
+    const trimmed = tempApiKeyInput.trim();
+    if (!trimmed) {
+      localStorage.removeItem('kinora_gemini_api_key');
+      setGeminiApiKey('');
+      setShowApiKeyDrawer(false);
+      toast.info('Google AI Studio API key removed');
+      return;
+    }
+    localStorage.setItem('kinora_gemini_api_key', trimmed);
+    setGeminiApiKey(trimmed);
+    setShowApiKeyDrawer(false);
+    toast.success('✨ Google AI Studio API Key saved to your browser!');
+  };
+
   // Composite user photo with garment
   const handleGenerateTryOn = async () => {
     if (!userPhoto) {
@@ -164,7 +189,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
 
     setIsProcessing(true);
 
-    // 1. Try Photorealistic AI Virtual Try-On API first (FASHN.ai or Replicate)
+    // 1. Try Photorealistic AI Virtual Try-On API first (Google AI Studio Gemini, FASHN.ai, or Replicate)
     try {
       const apiRes = await fetch('/api/virtual-tryon', {
         method: 'POST',
@@ -174,6 +199,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
           garmentImage: primaryProductImgUrl,
           garmentType,
           garmentName: product.name,
+          geminiApiKey: geminiApiKey || undefined,
         }),
       });
 
@@ -192,6 +218,12 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
         return;
       } else if (apiData.needApiKey) {
         setNeedApiKeyNotice(true);
+        setShowApiKeyDrawer(true);
+      } else if (apiData.error) {
+        console.warn('AI Try-On API error:', apiData.error);
+        if (apiData.error.includes('Google AI Studio response:')) {
+          toast.error(apiData.error);
+        }
       }
     } catch (apiErr) {
       console.warn('AI Try-On API call skipped or timed out, continuing with precision canvas:', apiErr);
@@ -651,19 +683,91 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Photorealistic AI Try-On Notice */}
-                  <div className={`p-3.5 rounded-2xl border transition-all space-y-1.5 text-xs ${
-                    needApiKeyNotice 
-                      ? 'bg-amber-100/90 border-amber-400 text-amber-950 ring-2 ring-amber-300' 
-                      : 'bg-amber-50/80 border-amber-200 text-amber-900'
-                  }`}>
-                    <div className="flex items-center space-x-2 font-bold text-amber-900">
-                      <Sparkles className="w-4 h-4 fill-amber-500 text-amber-600 shrink-0" />
-                      <span>Photorealistic AI Clothing Swap</span>
+                  {/* Google AI Studio API Key Card */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-purple-50/60 border border-blue-200/80 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-neutral-900">
+                            Google AI Studio Fitting
+                          </p>
+                          <p className="text-[10px] text-neutral-500">
+                            Natural clothing replacement on body
+                          </p>
+                        </div>
+                      </div>
+
+                      {geminiApiKey ? (
+                        <div className="flex items-center space-x-1.5">
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Active</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTempApiKeyInput(geminiApiKey);
+                              setShowApiKeyDrawer(!showApiKeyDrawer);
+                            }}
+                            className="text-[11px] text-blue-700 underline font-semibold hover:text-blue-900"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTempApiKeyInput('');
+                            setShowApiKeyDrawer(!showApiKeyDrawer);
+                          }}
+                          className="px-2.5 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold flex items-center space-x-1 shadow-sm transition-all"
+                        >
+                          <Key className="w-3 h-3" />
+                          <span>Enter API Key</span>
+                        </button>
+                      )}
                     </div>
-                    <p className="text-[11px] text-amber-800 leading-relaxed">
-                      For AI to automatically replace your existing clothes and naturally wrap this garment onto your body shape, add your free <strong>FASHN_API_KEY</strong> (from <a href="https://fashn.ai" target="_blank" rel="noreferrer" className="underline font-bold">fashn.ai</a>) or <strong>REPLICATE_API_TOKEN</strong> (from <a href="https://replicate.com" target="_blank" rel="noreferrer" className="underline font-bold">replicate.com</a>) in <code>.env</code>.
-                    </p>
+
+                    {showApiKeyDrawer && (
+                      <div className="pt-2 border-t border-blue-200/60 space-y-2">
+                        <p className="text-[11px] text-neutral-600 leading-snug">
+                          Enter your <strong>Google AI Studio API Key</strong> to realistically swap clothes onto your body:{' '}
+                          <a 
+                            href="https://aistudio.google.com/app/apikey" 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-blue-600 font-bold underline inline-flex items-center space-x-0.5"
+                          >
+                            <span>Get Free Key</span>
+                            <ExternalLink className="w-2.5 h-2.5 ml-0.5 inline" />
+                          </a>
+                        </p>
+
+                        <div className="flex items-center space-x-1.5">
+                          <input
+                            type="password"
+                            value={tempApiKeyInput}
+                            onChange={(e) => setTempApiKeyInput(e.target.value)}
+                            placeholder="Paste AIzaSy... key"
+                            className="flex-1 px-3 py-1.5 rounded-xl border border-neutral-300 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSaveApiKey}
+                            className="px-3 py-1.5 rounded-xl bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 transition-colors shrink-0"
+                          >
+                            Save
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-neutral-400">
+                          Stored locally in your browser, or configure <code>GEMINI_API_KEY</code> in <code>.env</code>.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Generate Button */}
