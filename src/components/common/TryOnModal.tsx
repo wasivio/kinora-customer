@@ -63,6 +63,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
   const [savedLooks, setSavedLooks] = useState<TryOnLook[]>([]);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [needApiKeyNotice, setNeedApiKeyNotice] = useState<boolean>(false);
+  const [aiLandmarks, setAiLandmarks] = useState<{ neckY: number; shoulderWidth: number; centerX: number; waistY: number } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -89,6 +90,33 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
   const loadHistory = async () => {
     const looks = await getLocalTryOnLooks();
     setSavedLooks(looks);
+  };
+
+  // Auto-detect body landmarks using Gemini AI
+  const detectLandmarks = async (photoDataUrl: string) => {
+    if (!product.images?.[0]?.url) return;
+    try {
+      const res = await fetch('/api/virtual-tryon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personImage: photoDataUrl,
+          garmentImage: product.images[0].url,
+          garmentType,
+          garmentName: product.name,
+          geminiApiKey: geminiApiKey || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data?.aiFit) {
+        setAiLandmarks(data.aiFit);
+        const suggestedScale = Math.min(130, Math.max(80, Math.round(data.aiFit.shoulderWidth * 1.05)));
+        setGarmentScale(suggestedScale);
+        toast.success('✨ Gemini AI detected body contours & shoulders!');
+      }
+    } catch (e) {
+      console.warn('Auto landmark detection error:', e);
+    }
   };
 
   // Start Camera
@@ -137,6 +165,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
     setUserPhoto(dataUrl);
     setResultImage(null);
     stopCamera();
+    detectLandmarks(dataUrl);
   };
 
   // Handle Photo Upload from Disk
@@ -151,9 +180,11 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setUserPhoto(event.target?.result as string);
+      const dataUrl = event.target?.result as string;
+      setUserPhoto(dataUrl);
       setResultImage(null);
       stopCamera();
+      detectLandmarks(dataUrl);
     };
     reader.readAsDataURL(file);
   };
@@ -216,6 +247,11 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
         toast.success('✨ Photorealistic AI Try-On generated successfully!');
         setIsProcessing(false);
         return;
+      } else if (apiData.success && apiData.aiFit) {
+        setAiLandmarks(apiData.aiFit);
+        const suggestedScale = Math.min(130, Math.max(80, Math.round(apiData.aiFit.shoulderWidth * 1.05)));
+        setGarmentScale(suggestedScale);
+        toast.success('✨ Gemini AI detected body contours & shoulders!');
       } else if (apiData.needApiKey) {
         setNeedApiKeyNotice(true);
         setShowApiKeyDrawer(true);
@@ -229,7 +265,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
       console.warn('AI Try-On API call skipped or timed out, continuing with precision canvas:', apiErr);
     }
 
-    // 2. Precision Canvas Fitting (Positioned properly on shoulders/torso, not face)
+    // 2. Precision Canvas Fitting (Positioned with AI body landmarks on shoulders/torso, not face)
     try {
       const userImg = new Image();
       userImg.crossOrigin = 'anonymous';
@@ -262,8 +298,11 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(userImg, 0, 0, width, height);
 
-      // Compute garment sizing and positioning
-      const scaleMultiplier = (garmentScale / 100);
+      // Compute garment sizing and positioning using AI landmarks or user sliders
+      const effectiveScale = aiLandmarks?.shoulderWidth
+        ? Math.min(130, Math.max(80, Math.round(aiLandmarks.shoulderWidth * 1.05)))
+        : garmentScale;
+      const scaleMultiplier = (effectiveScale / 100);
       let gWidth = width * 0.65 * scaleMultiplier;
       let gHeight = (garmentImg.height / garmentImg.width) * gWidth;
 
@@ -275,15 +314,19 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
 
       // Positioning based on Upper vs Lower wear
       // IMPORTANT: Sits below the chin/neck on shoulders/torso, NOT over the face!
-      let gX = (width - gWidth) / 2 + (horizontalOffset * (width / 500));
+      const neckPercent = aiLandmarks?.neckY ? aiLandmarks.neckY : 44;
+      const waistPercent = aiLandmarks?.waistY ? aiLandmarks.waistY : 68;
+      const centerXPercent = aiLandmarks?.centerX ? aiLandmarks.centerX : 50;
+
+      let gX = ((width * (centerXPercent / 100)) - (gWidth / 2)) + (horizontalOffset * (width / 500));
       let gY: number;
 
       if (garmentType === 'upper') {
-        // Position on upper chest/torso (roughly 42% - 46% from top, below chin)
-        gY = height * 0.42 + (verticalOffset * (height / 500));
+        // Position starting below the neck/chin on torso
+        gY = (height * (neckPercent / 100)) + (verticalOffset * (height / 500));
       } else {
-        // Position on lower waist/legs (roughly 64% - 68% from top)
-        gY = height * 0.64 + (verticalOffset * (height / 500));
+        // Position on waist/legs
+        gY = (height * (waistPercent / 100)) + (verticalOffset * (height / 500));
       }
 
       // Draw soft shadow beneath garment for realistic depth
@@ -520,10 +563,14 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
                       {/* Live Alignment Preview of Garment over Customer */}
                       {product.images?.[0]?.url && (
                         <div 
-                          className="absolute pointer-events-none transition-all duration-100 flex items-center justify-center"
+                          className="absolute pointer-events-none transition-all duration-300 flex items-center justify-center"
                           style={{
-                            top: `${garmentType === 'upper' ? 42 + (verticalOffset * 0.4) : 64 + (verticalOffset * 0.4)}%`,
-                            left: `${50 + (horizontalOffset * 0.4)}%`,
+                            top: `${
+                              garmentType === 'upper'
+                                ? (aiLandmarks?.neckY || 44) + (verticalOffset * 0.4)
+                                : (aiLandmarks?.waistY || 68) + (verticalOffset * 0.4)
+                            }%`,
+                            left: `${(aiLandmarks?.centerX || 50) + (horizontalOffset * 0.4)}%`,
                             width: `${garmentScale * 0.65}%`,
                             transform: 'translate(-50%, 0)',
                           }}

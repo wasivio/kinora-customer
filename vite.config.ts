@@ -266,6 +266,60 @@ INSTRUCTIONS:
                         return;
                       }
 
+                      // 1b. AI Body Contour & Landmark Detection using Gemini 2.5 Flash
+                      try {
+                        const landmarkRes = await fetch(
+                          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+                          {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              contents: [
+                                {
+                                  parts: [
+                                    {
+                                      text: 'Analyze this customer photo for virtual clothing fitting. Detect where their neck/chin ends and shoulders begin (neck_y_percent, 0-100 from top of image), shoulder width (shoulder_width_percent, 0-100), torso center (center_x_percent, 0-100), waist line (waist_y_percent, 0-100). Return ONLY JSON: {"detected": boolean, "neck_y_percent": number, "shoulder_width_percent": number, "center_x_percent": number, "waist_y_percent": number}',
+                                    },
+                                    {
+                                      inline_data: {
+                                        mime_type: 'image/jpeg',
+                                        data: personBase64,
+                                      },
+                                    },
+                                  ],
+                                },
+                              ],
+                              generationConfig: { responseMimeType: 'application/json' },
+                            }),
+                          }
+                        );
+
+                        if (landmarkRes.ok) {
+                          const lData = await landmarkRes.json();
+                          const rawText = lData?.candidates?.[0]?.content?.parts?.[0]?.text;
+                          if (rawText) {
+                            const parsed = JSON.parse(rawText);
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.end(
+                              JSON.stringify({
+                                success: true,
+                                aiFit: {
+                                  neckY: Number(parsed.neck_y_percent) || 45,
+                                  shoulderWidth: Number(parsed.shoulder_width_percent) || 70,
+                                  centerX: Number(parsed.center_x_percent) || 50,
+                                  waistY: Number(parsed.waist_y_percent) || 70,
+                                },
+                                message: 'Gemini AI successfully analyzed body contours & landmarks.',
+                              })
+                            );
+                            return;
+                          }
+                        }
+                      } catch (lErr) {
+                        console.warn('[Google AI Studio] Landmark fallback error:', lErr);
+                      }
+
                       if (!fashnKey && !replicateToken && lastGeminiError) {
                         res.statusCode = 200;
                         res.setHeader('Content-Type', 'application/json');
