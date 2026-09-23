@@ -7,6 +7,7 @@ import { useStore } from '../context/StoreContext';
 import { Order } from '../types';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { getWhatsAppOrderUrl, ADMIN_WHATSAPP_NUMBER } from '../lib/whatsapp';
+import { CancelOrderModal } from '../components/common/CancelOrderModal';
 import { 
   ArrowLeft, 
   Package, 
@@ -26,6 +27,7 @@ export const OrderDetailPage: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
   const justPlaced = Boolean((location.state as any)?.justPlaced);
 
   useEffect(() => {
@@ -51,10 +53,8 @@ export const OrderDetailPage: React.FC = () => {
     return () => unsubscribe();
   }, [id]);
 
-  const handleCancelOrder = async () => {
+  const handleConfirmCancel = async () => {
     if (!order || order.orderStatus !== 'pending') return;
-    const confirm = window.confirm('Are you sure you wish to cancel this order?');
-    if (!confirm) return;
 
     setIsCancelling(true);
     try {
@@ -64,6 +64,7 @@ export const OrderDetailPage: React.FC = () => {
         updatedAt: new Date().toISOString(),
       });
       toast.success('Order has been cancelled');
+      setIsCancelModalOpen(false);
     } catch {
       toast.error('Failed to cancel order');
     } finally {
@@ -369,16 +370,24 @@ export const OrderDetailPage: React.FC = () => {
         {order.orderStatus === 'pending' && (
           <div className="pt-2 text-center">
             <button
-              onClick={handleCancelOrder}
+              onClick={() => setIsCancelModalOpen(true)}
               disabled={isCancelling}
-              className="px-6 py-2.5 rounded-full border border-neutral-300 text-neutral-600 hover:text-honey hover:border-honey text-xs font-semibold uppercase tracking-wider transition-colors disabled:opacity-50"
+              className="px-6 py-2.5 rounded-full border border-neutral-300 text-neutral-600 hover:text-red-600 hover:border-red-300 text-xs font-semibold uppercase tracking-wider transition-colors disabled:opacity-50"
             >
-              {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+              Cancel Order
             </button>
           </div>
         )}
 
       </div>
+
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        onConfirmCancel={handleConfirmCancel}
+        isCancelling={isCancelling}
+        orderNumber={order.orderNumber}
+      />
 
     </div>
   );
