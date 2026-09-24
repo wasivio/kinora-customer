@@ -147,7 +147,7 @@ export const CheckoutPage: React.FC = () => {
 
         clearCart();
         toast.success(`Order ${orderNumber} placed successfully!`);
-        navigate(`/orders/${docRef.id}`, { state: { justPlaced: true } });
+        navigate(`/orders/${docRef.id}`);
       } catch (err: any) {
         console.error('Error placing COD order:', err);
         toast.error(err?.message || 'Failed to place order. Please try again.');
@@ -285,7 +285,7 @@ export const CheckoutPage: React.FC = () => {
 
             clearCart();
             toast.success(`Payment verified! Order #${orderNumber} placed successfully.`);
-            navigate(`/orders/${docRef.id}`, { state: { justPlaced: true } });
+            navigate(`/orders/${docRef.id}`);
           } catch (verifyErr: any) {
             console.error('Verification error:', verifyErr);
             toast.error(

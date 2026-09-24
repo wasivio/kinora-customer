@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -19,14 +19,12 @@ import { toast } from 'sonner';
 
 export const OrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
   const { settings } = useStore();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
-  const justPlaced = Boolean((location.state as any)?.justPlaced);
 
   useEffect(() => {
     if (!id) return;
