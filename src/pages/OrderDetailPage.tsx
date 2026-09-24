@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
 import { Order } from '../types';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { getWhatsAppOrderUrl, ADMIN_WHATSAPP_NUMBER } from '../lib/whatsapp';
 import { CancelOrderModal } from '../components/common/CancelOrderModal';
 import { 
   ArrowLeft, 
@@ -14,8 +13,7 @@ import {
   Clock, 
   Truck, 
   Home, 
-  XCircle,
-  MessageCircle
+  XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -130,41 +128,6 @@ export const OrderDetailPage: React.FC = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 space-y-5">
-        
-        {/* WhatsApp Admin Notification Card (+91 8810519646) */}
-        <div className="p-4 sm:p-5 rounded-3xl border border-emerald-200 bg-emerald-50/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#25D366] text-white flex items-center justify-center shrink-0 shadow-sm">
-              <MessageCircle className="w-5 h-5 fill-white" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs sm:text-sm font-bold text-neutral-900 font-display">
-                  WhatsApp Admin Alert: +91 8810519646
-                </span>
-                {justPlaced && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#25D366] text-white text-[10px] font-bold uppercase tracking-wider">
-                    New Order
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-neutral-600 mt-0.5">
-                Complete order details generated for WhatsApp number <strong>8810519646</strong>.
-              </p>
-            </div>
-          </div>
-
-          <a
-            href={getWhatsAppOrderUrl(order)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:scale-95 text-white text-xs font-bold uppercase tracking-wider transition-all shadow-sm flex items-center justify-center space-x-2 shrink-0"
-          >
-            <MessageCircle className="w-4 h-4 fill-white" />
-            <span>Send to WhatsApp</span>
-          </a>
-        </div>
-
         {/* Progress Tracker */}
         <div className="p-6 rounded-3xl border border-neutral-100 bg-white shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-8 border-b border-neutral-100 gap-3">

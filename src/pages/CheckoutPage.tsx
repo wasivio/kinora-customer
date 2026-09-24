@@ -17,7 +17,6 @@ import { db } from '../lib/firebase';
 import { Order, OrderAddress, OrderItem } from '../types';
 import { generateOrderNumber, formatCurrency } from '../lib/utils';
 import { loadRazorpayScript, RazorpayResponse } from '../lib/razorpay';
-import { sendOrderToWhatsApp } from '../lib/whatsapp';
 import { toast } from 'sonner';
 
 export const CheckoutPage: React.FC = () => {
@@ -145,9 +144,6 @@ export const CheckoutPage: React.FC = () => {
         if (saveThisAddress) {
           saveAddress(formData).catch(() => {});
         }
-
-        // Send order notification to WhatsApp (+91 8810519646)
-        sendOrderToWhatsApp({ id: docRef.id, ...newOrder });
 
         clearCart();
         toast.success(`Order ${orderNumber} placed successfully!`);
@@ -286,9 +282,6 @@ export const CheckoutPage: React.FC = () => {
             if (saveThisAddress) {
               saveAddress(formData).catch(() => {});
             }
-
-            // Send order notification to WhatsApp (+91 8810519646)
-            sendOrderToWhatsApp({ id: docRef.id, ...newOrder });
 
             clearCart();
             toast.success(`Payment verified! Order #${orderNumber} placed successfully.`);
