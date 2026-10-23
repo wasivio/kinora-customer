@@ -16,13 +16,43 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const { amount, currency = 'INR', receipt, notes } = req.body || {};
+    const { amount, currency = 'INR', receipt, notes, items } = req.body || {};
 
     if (!amount || Number(amount) <= 0) {
       return res.status(400).json({
         success: false,
         error: 'Invalid order amount',
       });
+    }
+
+    // Backend validation: Ensure no product in cart has Online payment disabled
+    if (Array.isArray(items) && items.length > 0) {
+      const FIRESTORE_BASE_URL = 'https://firestore.googleapis.com/v1/projects/kinora-62da7/databases/(default)/documents/products';
+      for (const item of items) {
+        if (!item.productId) continue;
+        try {
+          const resp = await fetch(`${FIRESTORE_BASE_URL}/${item.productId}`);
+          if (resp.ok) {
+            const docData = await resp.json();
+            const fields = docData.fields || {};
+            const allowUPI = fields.allowUPI?.booleanValue !== undefined
+              ? fields.allowUPI.booleanValue
+              : fields.paymentSettings?.mapValue?.fields?.allowUPI?.booleanValue !== undefined
+              ? fields.paymentSettings.mapValue.fields.allowUPI.booleanValue
+              : true;
+
+            if (allowUPI === false) {
+              const name = fields.name?.stringValue || 'Product';
+              return res.status(400).json({
+                success: false,
+                error: `Product "${name}" does not support Online Payment.`,
+              });
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('Backend item verification note:', fetchErr);
+        }
+      }
     }
 
     const instance = new Razorpay({

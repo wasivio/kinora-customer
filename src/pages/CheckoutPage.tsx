@@ -29,7 +29,7 @@ export const CheckoutPage: React.FC = () => {
     total, 
     clearCart
   } = useCart();
-  const { settings } = useStore();
+  const { settings, getProductById } = useStore();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<OrderAddress>({
@@ -46,6 +46,51 @@ export const CheckoutPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('');
   const [saveThisAddress, setSaveThisAddress] = useState<boolean>(true);
+
+  // Product-wise Payment Settings & Eligibility Calculations
+  const codIneligibleItems = cart.filter((item) => {
+    const prod = getProductById(item.productId);
+    const allow = prod?.allowCOD ?? prod?.paymentSettings?.allowCOD ?? item.allowCOD ?? true;
+    return allow === false;
+  });
+
+  const upiIneligibleItems = cart.filter((item) => {
+    const prod = getProductById(item.productId);
+    const allow = prod?.allowUPI ?? prod?.paymentSettings?.allowUPI ?? item.allowUPI ?? true;
+    return allow === false;
+  });
+
+  const isCodEligible = codIneligibleItems.length === 0;
+  const isUpiEligible = upiIneligibleItems.length === 0;
+
+  // Maximum COD extra fee configured among products in cart
+  const codExtraCharge = isCodEligible
+    ? Math.max(
+        0,
+        ...cart.map((item) => {
+          const prod = getProductById(item.productId);
+          return (
+            prod?.codCharge ??
+            prod?.paymentSettings?.codCharge ??
+            item.codCharge ??
+            0
+          );
+        })
+      )
+    : 0;
+
+  // Final Order Total based on payment method
+  const activeCodCharge = paymentMethod === 'cod' ? codExtraCharge : 0;
+  const finalOrderTotal = total + activeCodCharge;
+
+  // Auto switch payment method if currently selected one is ineligible
+  useEffect(() => {
+    if (!isCodEligible && paymentMethod === 'cod') {
+      setPaymentMethod('online');
+    } else if (!isUpiEligible && paymentMethod === 'online') {
+      setPaymentMethod('cod');
+    }
+  }, [isCodEligible, isUpiEligible, paymentMethod]);
 
   useEffect(() => {
     if (userProfile?.addresses && userProfile.addresses.length > 0) {
@@ -111,11 +156,61 @@ export const CheckoutPage: React.FC = () => {
       sku: item.sku,
     }));
 
+    if (paymentMethod === 'cod' && !isCodEligible) {
+      toast.error('Cash on Delivery is unavailable for items in your cart. Please select Online Payment.');
+      return;
+    }
+
+    if (paymentMethod === 'online' && !isUpiEligible) {
+      toast.error('Online Payment is unavailable for items in your cart. Please select Cash on Delivery.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setProcessingMessage('Verifying cart and payment eligibility...');
+
+    // Server-side validation before finalizing order
+    let verifiedCodFee = activeCodCharge;
+    let verifiedTotal = finalOrderTotal;
+
+    try {
+      const valRes = await fetch('/api/validate-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          paymentMethod,
+          shippingFee,
+          couponDiscount,
+        }),
+      });
+
+      if (valRes.ok) {
+        const valData = await valRes.json();
+        if (valData.success === false || valData.valid === false) {
+          throw new Error(valData.error || 'Cart payment verification failed. Please review your cart.');
+        }
+        if (paymentMethod === 'cod') {
+          verifiedCodFee = Number(valData.codCharge) || 0;
+          verifiedTotal =
+            (Number(valData.subtotal) || subtotal) - couponDiscount + shippingFee + verifiedCodFee;
+        } else {
+          verifiedTotal = (Number(valData.subtotal) || subtotal) - couponDiscount + shippingFee;
+        }
+      }
+    } catch (valErr: any) {
+      if (valErr.message && !valErr.message.includes('Failed to fetch')) {
+        toast.error(valErr.message);
+        setIsSubmitting(false);
+        setProcessingMessage('');
+        return;
+      }
+    }
+
     // ==========================================
     // 1. CASH ON DELIVERY (COD) FLOW
     // ==========================================
     if (paymentMethod === 'cod') {
-      setIsSubmitting(true);
       setProcessingMessage('Placing COD Order...');
 
       try {
@@ -126,11 +221,12 @@ export const CheckoutPage: React.FC = () => {
           customerEmail: user.email || '',
           customerPhone: formData.phone,
           items: orderItems,
-          totalAmount: total,
+          totalAmount: verifiedTotal,
           subtotal,
           discountAmount: couponDiscount,
           taxAmount: 0,
           shippingAmount: shippingFee,
+          codCharge: verifiedCodFee,
           paymentStatus: 'pending',
           orderStatus: 'pending',
           paymentMethod: 'COD',
@@ -161,20 +257,20 @@ export const CheckoutPage: React.FC = () => {
     // ==========================================
     // 2. ONLINE PAYMENT VIA RAZORPAY (TEST MODE)
     // ==========================================
-    setIsSubmitting(true);
     setProcessingMessage('Creating secure Razorpay order...');
 
     try {
-      // Step A: Create order on server
+      // Step A: Create order on server with verified items
       const orderRes = await fetch('/api/create-razorpay-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: total,
+          amount: verifiedTotal,
           currency: settings.currency || 'INR',
           receipt: orderNumber,
+          items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity })),
           notes: {
             customerId: user.uid,
             customerName: formData.name,
@@ -261,11 +357,12 @@ export const CheckoutPage: React.FC = () => {
               customerEmail: user.email || '',
               customerPhone: formData.phone,
               items: orderItems,
-              totalAmount: total,
+              totalAmount: verifiedTotal,
               subtotal,
               discountAmount: couponDiscount,
               taxAmount: 0,
               shippingAmount: shippingFee,
+              codCharge: 0,
               paymentStatus: 'paid',
               orderStatus: 'pending',
               paymentMethod: 'RAZORPAY',
@@ -508,67 +605,126 @@ export const CheckoutPage: React.FC = () => {
                 </div>
 
                 {/* Option 1: Online Payment via Razorpay */}
-                <label
-                  className={`flex items-start justify-between p-4 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === 'online'
+                <div
+                  className={`p-4 rounded-2xl border transition-all ${
+                    !isUpiEligible
+                      ? 'border-neutral-200 bg-neutral-100/70 opacity-70'
+                      : paymentMethod === 'online'
                       ? 'border-honey bg-honey/5 ring-1 ring-honey shadow-sm'
-                      : 'border-neutral-200 hover:border-neutral-300'
+                      : 'border-neutral-200 hover:border-neutral-300 cursor-pointer'
                   }`}
+                  onClick={() => {
+                    if (isUpiEligible) setPaymentMethod('online');
+                  }}
                 >
-                  <div className="flex items-start space-x-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === 'online'}
-                      onChange={() => setPaymentMethod('online')}
-                      className="mt-1 accent-honey text-honey"
-                    />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <CreditCard className="w-4 h-4 text-honey" />
-                        <span className="text-xs sm:text-sm font-bold text-neutral-900">
-                          Online Payment (Razorpay)
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
-                          Instant
-                        </span>
+                  <label className={`flex items-start justify-between ${isUpiEligible ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="radio"
+                        name="payment"
+                        disabled={!isUpiEligible}
+                        checked={paymentMethod === 'online'}
+                        onChange={() => {
+                          if (isUpiEligible) setPaymentMethod('online');
+                        }}
+                        className="mt-1 accent-honey text-honey"
+                      />
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <CreditCard className="w-4 h-4 text-honey" />
+                          <span className="text-xs sm:text-sm font-bold text-neutral-900">
+                            UPI & Online Payment (Razorpay)
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
+                            Instant
+                          </span>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Pay securely using UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, NetBanking, or Wallets.
+                        </p>
                       </div>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        Pay securely using UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, NetBanking, or Wallets.
-                      </p>
                     </div>
-                  </div>
-                </label>
+                  </label>
+
+                  {!isUpiEligible && (
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-start gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold block">Online payment disabled for item(s):</span>
+                        <ul className="list-disc list-inside mt-0.5 text-[10px] space-y-0.5">
+                          {upiIneligibleItems.map((item) => (
+                            <li key={item.id} className="truncate">{item.name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Option 2: Cash on Delivery */}
-                <label
-                  className={`flex items-start justify-between p-4 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === 'cod'
+                <div
+                  className={`p-4 rounded-2xl border transition-all ${
+                    !isCodEligible
+                      ? 'border-neutral-200 bg-neutral-100/70 opacity-70'
+                      : paymentMethod === 'cod'
                       ? 'border-honey bg-honey/5 ring-1 ring-honey shadow-sm'
-                      : 'border-neutral-200 hover:border-neutral-300'
+                      : 'border-neutral-200 hover:border-neutral-300 cursor-pointer'
                   }`}
+                  onClick={() => {
+                    if (isCodEligible) setPaymentMethod('cod');
+                  }}
                 >
-                  <div className="flex items-start space-x-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                      className="mt-1 accent-honey text-honey"
-                    />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <Banknote className="w-4 h-4 text-honey" />
-                        <span className="text-xs sm:text-sm font-bold text-neutral-900">
-                          Cash on Delivery (COD)
-                        </span>
+                  <label className={`flex items-start justify-between ${isCodEligible ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="radio"
+                        name="payment"
+                        disabled={!isCodEligible}
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => {
+                          if (isCodEligible) setPaymentMethod('cod');
+                        }}
+                        className="mt-1 accent-honey text-honey"
+                      />
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Banknote className="w-4 h-4 text-honey" />
+                          <span className="text-xs sm:text-sm font-bold text-neutral-900">
+                            Cash on Delivery (COD)
+                          </span>
+                          {isCodEligible && (
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                                codExtraCharge > 0
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {codExtraCharge > 0 ? `+ ₹${codExtraCharge} COD Fee` : 'Free COD'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Pay in cash upon doorstep delivery of your package.
+                        </p>
                       </div>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        Pay in cash upon doorstep delivery of your package.
-                      </p>
                     </div>
-                  </div>
-                </label>
+                  </label>
+
+                  {!isCodEligible && (
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-start gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold block">COD unavailable for item(s):</span>
+                        <ul className="list-disc list-inside mt-0.5 text-[10px] space-y-0.5">
+                          {codIneligibleItems.map((item) => (
+                            <li key={item.id} className="truncate">{item.name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -618,9 +774,20 @@ export const CheckoutPage: React.FC = () => {
                       {shippingFee === 0 ? 'FREE' : formatCurrency(shippingFee, settings.currencySymbol)}
                     </span>
                   </div>
+
+                  {/* COD Extra Charge Line Item */}
+                  {paymentMethod === 'cod' && codExtraCharge > 0 && (
+                    <div className="flex justify-between text-amber-800 font-semibold bg-amber-50/80 px-2 py-1.5 rounded-lg border border-amber-200/70">
+                      <span>COD Extra Handling Fee</span>
+                      <span>+{formatCurrency(codExtraCharge, settings.currencySymbol)}</span>
+                    </div>
+                  )}
+
                   <div className="pt-2 border-t border-neutral-100 flex justify-between text-base font-bold text-neutral-900">
                     <span>Total Amount</span>
-                    <span className="text-neutral-900 font-sans">{formatCurrency(total, settings.currencySymbol)}</span>
+                    <span className="text-neutral-900 font-sans">
+                      {formatCurrency(finalOrderTotal, settings.currencySymbol)}
+                    </span>
                   </div>
                 </div>
 
@@ -636,9 +803,9 @@ export const CheckoutPage: React.FC = () => {
                       <span>{processingMessage || 'Processing...'}</span>
                     </>
                   ) : paymentMethod === 'online' ? (
-                    <span>Pay {formatCurrency(total, settings.currencySymbol)} Online</span>
+                    <span>Pay {formatCurrency(finalOrderTotal, settings.currencySymbol)} Online</span>
                   ) : (
-                    <span>Place COD Order</span>
+                    <span>Place COD Order ({formatCurrency(finalOrderTotal, settings.currencySymbol)})</span>
                   )}
                 </button>
 

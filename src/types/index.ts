@@ -34,8 +34,18 @@ export interface Product {
   specifications?: Record<string, string> | Array<{ key: string; value: string }>;
   deliveryCharge?: number;
   shippingFee?: number;
+  allowCOD?: boolean;
+  allowUPI?: boolean;
+  codCharge?: number;
+  paymentSettings?: ProductPaymentSettings;
   createdAt?: any;
   updatedAt?: any;
+}
+
+export interface ProductPaymentSettings {
+  allowCOD: boolean;
+  allowUPI: boolean;
+  codCharge: number;
 }
 
 export interface Category {
@@ -106,6 +116,9 @@ export interface CartItem {
   sku?: string;
   deliveryCharge?: number;
   shippingFee?: number;
+  allowCOD?: boolean;
+  allowUPI?: boolean;
+  codCharge?: number;
 }
 
 export interface OrderItem {
@@ -141,6 +154,7 @@ export interface Order {
   discountAmount: number;
   taxAmount: number;
   shippingAmount: number;
+  codCharge?: number;
   paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
   orderStatus: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentMethod: 'RAZORPAY' | 'COD' | string;

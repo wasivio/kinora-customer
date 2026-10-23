@@ -105,6 +105,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maxStock: product.stock,
           sku: product.SKU,
           deliveryCharge: Number(product.deliveryCharge || product.shippingFee || 0),
+          allowCOD: product.allowCOD ?? product.paymentSettings?.allowCOD ?? true,
+          allowUPI: product.allowUPI ?? product.paymentSettings?.allowUPI ?? true,
+          codCharge: product.codCharge ?? product.paymentSettings?.codCharge ?? 0,
         };
         return [...prevCart, newItem];
       }
