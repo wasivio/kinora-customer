@@ -10,7 +10,9 @@ import {
   AlertCircle,
   Share2,
   MessageCircle,
-  Sparkles
+  Sparkles,
+  Banknote,
+  CreditCard
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
@@ -99,6 +101,9 @@ export const ProductDetailPage: React.FC = () => {
 
   const isWished = isInWishlist(product.id);
   const isOutOfStock = product.stock <= 0 || product.status === 'out_of_stock';
+  const isCodAllowed = product.allowCOD ?? product.paymentSettings?.allowCOD ?? true;
+  const isUpiAllowed = product.allowUPI ?? product.paymentSettings?.allowUPI ?? true;
+  const codFee = Number(product.codCharge ?? product.paymentSettings?.codCharge ?? 0);
   const hasVariants = Boolean(
     product.variants && 
     product.variants.length > 0 && 
@@ -349,6 +354,33 @@ export const ProductDetailPage: React.FC = () => {
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Payment Availability Badges */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+            {isCodAllowed ? (
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-100">
+                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Cash on Delivery Available {codFee > 0 ? `(+₹${codFee} fee)` : ''}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-neutral-100 text-neutral-500 text-xs font-medium">
+                <Banknote className="w-3.5 h-3.5 text-neutral-400" />
+                <span>COD Unavailable</span>
+              </span>
+            )}
+
+            {isUpiAllowed ? (
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-50 text-amber-900 text-xs font-semibold border border-amber-200/70">
+                <CreditCard className="w-3.5 h-3.5 text-honey" />
+                <span>UPI / Online Payment Accepted</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-neutral-100 text-neutral-500 text-xs font-medium">
+                <CreditCard className="w-3.5 h-3.5 text-neutral-400" />
+                <span>Online Payment Unavailable</span>
+              </span>
+            )}
           </div>
 
           {/* Dynamic Variants configured by Admin (ONLY rendered if admin entered variants) */}

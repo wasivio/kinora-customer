@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ShieldCheck, 
@@ -63,20 +63,31 @@ export const CheckoutPage: React.FC = () => {
   const isCodEligible = codIneligibleItems.length === 0;
   const isUpiEligible = upiIneligibleItems.length === 0;
 
-  // Maximum COD extra fee configured among products in cart
+  // Itemized breakdown of configured COD charges per product in cart
+  const codChargeBreakdown = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; codCharge: number }>();
+    cart.forEach((item) => {
+      const prod = getProductById(item.productId);
+      const charge = Number(
+        prod?.codCharge ??
+        prod?.paymentSettings?.codCharge ??
+        item.codCharge ??
+        0
+      );
+      if (charge > 0 && !map.has(item.productId)) {
+        map.set(item.productId, {
+          id: item.productId,
+          name: item.name,
+          codCharge: charge,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [cart, getProductById]);
+
+  // Total COD extra fee: Sum of configured COD charges for all products in cart
   const codExtraCharge = isCodEligible
-    ? Math.max(
-        0,
-        ...cart.map((item) => {
-          const prod = getProductById(item.productId);
-          return (
-            prod?.codCharge ??
-            prod?.paymentSettings?.codCharge ??
-            item.codCharge ??
-            0
-          );
-        })
-      )
+    ? codChargeBreakdown.reduce((sum, item) => sum + item.codCharge, 0)
     : 0;
 
   // Final Order Total based on payment method
@@ -86,9 +97,9 @@ export const CheckoutPage: React.FC = () => {
   // Auto switch payment method if currently selected one is ineligible
   useEffect(() => {
     if (!isCodEligible && paymentMethod === 'cod') {
-      setPaymentMethod('online');
+      if (isUpiEligible) setPaymentMethod('online');
     } else if (!isUpiEligible && paymentMethod === 'online') {
-      setPaymentMethod('cod');
+      if (isCodEligible) setPaymentMethod('cod');
     }
   }, [isCodEligible, isUpiEligible, paymentMethod]);
 
@@ -155,6 +166,11 @@ export const CheckoutPage: React.FC = () => {
         : undefined,
       sku: item.sku,
     }));
+
+    if (!isCodEligible && !isUpiEligible) {
+      toast.error('No payment method is available for your cart combination. Please remove conflicting items.');
+      return;
+    }
 
     if (paymentMethod === 'cod' && !isCodEligible) {
       toast.error('Cash on Delivery is unavailable for items in your cart. Please select Online Payment.');
@@ -604,6 +620,27 @@ export const CheckoutPage: React.FC = () => {
                   </span>
                 </div>
 
+                {/* Conflict Notice: If neither COD nor Online UPI is available for all products */}
+                {!isCodEligible && !isUpiEligible && (
+                  <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-red-900 text-sm">No Common Payment Method Available</p>
+                        <p className="mt-1 text-red-700 leading-relaxed">
+                          Your cart contains items with conflicting payment requirements. Some items only support Cash on Delivery while others only accept Online Payment. They cannot be checked out together.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-red-200/60 flex items-center justify-between">
+                      <span className="text-[11px] text-red-600 font-medium">Please separate your items into different orders.</span>
+                      <Link to="/cart" className="font-bold text-red-800 underline hover:text-red-900 text-xs">
+                        Review Cart &rarr;
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 {/* Option 1: Online Payment via Razorpay */}
                 <div
                   className={`p-4 rounded-2xl border transition-all ${
@@ -686,7 +723,7 @@ export const CheckoutPage: React.FC = () => {
                         }}
                         className="mt-1 accent-honey text-honey"
                       />
-                      <div>
+                      <div className="w-full">
                         <div className="flex items-center space-x-2">
                           <Banknote className="w-4 h-4 text-honey" />
                           <span className="text-xs sm:text-sm font-bold text-neutral-900">
@@ -707,6 +744,18 @@ export const CheckoutPage: React.FC = () => {
                         <p className="text-xs text-neutral-500 mt-1">
                           Pay in cash upon doorstep delivery of your package.
                         </p>
+
+                        {isCodEligible && codChargeBreakdown.length > 0 && (
+                          <div className="mt-2.5 text-[11px] text-neutral-600 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/50 space-y-1">
+                            <span className="font-semibold text-amber-900 block">Product-wise COD Extra Charges:</span>
+                            {codChargeBreakdown.map((b) => (
+                              <div key={b.id} className="flex justify-between text-neutral-600">
+                                <span className="truncate max-w-[210px]">• {b.name}</span>
+                                <span className="font-semibold text-neutral-800">+{formatCurrency(b.codCharge, settings.currencySymbol)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </label>
@@ -776,10 +825,22 @@ export const CheckoutPage: React.FC = () => {
                   </div>
 
                   {/* COD Extra Charge Line Item */}
-                  {paymentMethod === 'cod' && codExtraCharge > 0 && (
-                    <div className="flex justify-between text-amber-800 font-semibold bg-amber-50/80 px-2 py-1.5 rounded-lg border border-amber-200/70">
-                      <span>COD Extra Handling Fee</span>
-                      <span>+{formatCurrency(codExtraCharge, settings.currencySymbol)}</span>
+                  {paymentMethod === 'cod' && isCodEligible && (
+                    <div className="rounded-xl bg-amber-50/80 p-2.5 border border-amber-200/70 space-y-1.5 text-xs">
+                      <div className="flex justify-between text-amber-900 font-semibold">
+                        <span>COD Extra Handling Fee</span>
+                        <span>{codExtraCharge > 0 ? `+${formatCurrency(codExtraCharge, settings.currencySymbol)}` : 'FREE'}</span>
+                      </div>
+                      {codChargeBreakdown.length > 0 && (
+                        <div className="text-[11px] text-amber-800/80 space-y-1 pt-1.5 border-t border-amber-200/60">
+                          {codChargeBreakdown.map((item) => (
+                            <div key={item.id} className="flex justify-between">
+                              <span className="truncate max-w-[170px]">• {item.name}</span>
+                              <span className="font-semibold">+{formatCurrency(item.codCharge, settings.currencySymbol)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -794,14 +855,16 @@ export const CheckoutPage: React.FC = () => {
                 {/* Submit CTA */}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 px-6 rounded-full bg-honey hover:bg-honey-600 disabled:bg-neutral-200 text-white text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95 flex items-center justify-center space-x-2"
+                  disabled={isSubmitting || (!isCodEligible && !isUpiEligible)}
+                  className="w-full py-3.5 px-6 rounded-full bg-honey hover:bg-honey-600 disabled:bg-neutral-200 disabled:text-neutral-400 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95 flex items-center justify-center space-x-2"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>{processingMessage || 'Processing...'}</span>
                     </>
+                  ) : !isCodEligible && !isUpiEligible ? (
+                    <span>No Payment Method Available</span>
                   ) : paymentMethod === 'online' ? (
                     <span>Pay {formatCurrency(finalOrderTotal, settings.currencySymbol)} Online</span>
                   ) : (

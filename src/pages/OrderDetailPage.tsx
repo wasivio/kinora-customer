@@ -321,6 +321,13 @@ export const OrderDetailPage: React.FC = () => {
               </span>
             </div>
 
+            {order.codCharge !== undefined && order.codCharge > 0 && (
+              <div className="flex justify-between text-amber-800 font-semibold bg-amber-50/80 px-2 py-1 rounded-lg border border-amber-200/70">
+                <span>COD Extra Fee:</span>
+                <span>+{formatCurrency(order.codCharge, settings.currencySymbol)}</span>
+              </div>
+            )}
+
             <div className="flex justify-between pt-2 border-t border-neutral-100 text-sm font-bold text-neutral-900">
               <span>Total Amount:</span>
               <span className="text-neutral-900 font-sans">{formatCurrency(order.totalAmount, settings.currencySymbol)}</span>

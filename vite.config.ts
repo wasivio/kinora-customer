@@ -15,6 +15,170 @@ export default defineConfig(({ mode }) => {
         name: 'razorpay-api-dev-server',
         configureServer(server) {
           server.middlewares.use(async (req, res, next) => {
+            // Handle /api/validate-checkout in local dev
+            if (req.method === 'POST' && req.url === '/api/validate-checkout') {
+              let body = '';
+              req.on('data', (chunk) => { body += chunk; });
+              req.on('end', async () => {
+                try {
+                  const data = body ? JSON.parse(body) : {};
+                  const { items, paymentMethod = 'online', shippingFee = 0, couponDiscount = 0 } = data;
+
+                  if (!Array.isArray(items) || items.length === 0) {
+                    res.statusCode = 400;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({
+                      success: false,
+                      valid: false,
+                      error: 'Cart contains no items to validate',
+                    }));
+                    return;
+                  }
+
+                  const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/kinora-62da7/databases/(default)/documents/products';
+                  const parseFields = (fields: Record<string, any>): Record<string, any> => {
+                    const result: Record<string, any> = {};
+                    if (!fields) return result;
+                    for (const [key, val] of Object.entries(fields)) {
+                      if (val.stringValue !== undefined) result[key] = val.stringValue;
+                      else if (val.integerValue !== undefined) result[key] = Number(val.integerValue);
+                      else if (val.doubleValue !== undefined) result[key] = Number(val.doubleValue);
+                      else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
+                      else if (val.timestampValue !== undefined) result[key] = val.timestampValue;
+                      else if (val.mapValue?.fields !== undefined) result[key] = parseFields(val.mapValue.fields);
+                    }
+                    return result;
+                  };
+
+                  const fetchedProducts = await Promise.all(
+                    items.map(async (item: { productId: string; quantity: number }) => {
+                      try {
+                        const resp = await fetch(`${FIRESTORE_BASE}/${item.productId}`);
+                        if (!resp.ok) {
+                          return {
+                            id: item.productId,
+                            name: 'Product',
+                            price: 0,
+                            allowCOD: true,
+                            allowUPI: true,
+                            codCharge: 0,
+                            quantity: item.quantity || 1,
+                          };
+                        }
+                        const docData = await resp.json();
+                        const parsed = parseFields(docData.fields);
+                        const allowCOD = parsed.allowCOD !== undefined
+                          ? parsed.allowCOD
+                          : parsed.paymentSettings?.allowCOD !== undefined
+                          ? parsed.paymentSettings.allowCOD
+                          : true;
+                        const allowUPI = parsed.allowUPI !== undefined
+                          ? parsed.allowUPI
+                          : parsed.paymentSettings?.allowUPI !== undefined
+                          ? parsed.paymentSettings.allowUPI
+                          : true;
+                        const codCharge = Number(parsed.codCharge ?? parsed.paymentSettings?.codCharge ?? 0);
+
+                        let unitPrice = Number(parsed.price || 0);
+                        if (parsed.discount && Number(parsed.discount) > 0) {
+                          const disc = Number(parsed.discount);
+                          if (disc < unitPrice) {
+                            unitPrice = disc <= 100 ? Math.round(unitPrice * (1 - disc / 100)) : unitPrice - disc;
+                          }
+                        }
+
+                        return {
+                          id: item.productId,
+                          name: parsed.name || 'Product',
+                          price: Math.max(0, unitPrice),
+                          allowCOD,
+                          allowUPI,
+                          codCharge: Math.max(0, codCharge),
+                          quantity: Math.max(1, item.quantity || 1),
+                        };
+                      } catch {
+                        return {
+                          id: item.productId,
+                          name: 'Product',
+                          price: 0,
+                          allowCOD: true,
+                          allowUPI: true,
+                          codCharge: 0,
+                          quantity: item.quantity || 1,
+                        };
+                      }
+                    })
+                  );
+
+                  if (paymentMethod === 'cod') {
+                    const codDisallowed = fetchedProducts.find((p) => p.allowCOD === false);
+                    if (codDisallowed) {
+                      res.statusCode = 200;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({
+                        success: true,
+                        valid: false,
+                        error: `Product "${codDisallowed.name}" is not eligible for Cash on Delivery. Please choose Online Payment.`,
+                      }));
+                      return;
+                    }
+                  }
+
+                  if (paymentMethod === 'online') {
+                    const upiDisallowed = fetchedProducts.find((p) => p.allowUPI === false);
+                    if (upiDisallowed) {
+                      res.statusCode = 200;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({
+                        success: true,
+                        valid: false,
+                        error: `Product "${upiDisallowed.name}" does not support Online Payment. Please choose Cash on Delivery.`,
+                      }));
+                      return;
+                    }
+                  }
+
+                  const codProductMap = new Map<string, { id: string; name: string; codCharge: number }>();
+                  for (const p of fetchedProducts) {
+                    if (!codProductMap.has(p.id)) {
+                      codProductMap.set(p.id, {
+                        id: p.id,
+                        name: p.name,
+                        codCharge: p.codCharge || 0,
+                      });
+                    }
+                  }
+
+                  const codBreakdown = Array.from(codProductMap.values()).filter((p) => p.codCharge > 0);
+                  const applicableCodCharge = paymentMethod === 'cod'
+                    ? codBreakdown.reduce((sum, item) => sum + item.codCharge, 0)
+                    : 0;
+
+                  const verifiedSubtotal = fetchedProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
+                  const verifiedTotal = Math.max(
+                    0,
+                    verifiedSubtotal - Number(couponDiscount || 0) + Number(shippingFee || 0) + applicableCodCharge
+                  );
+
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({
+                    success: true,
+                    valid: true,
+                    subtotal: verifiedSubtotal,
+                    codCharge: applicableCodCharge,
+                    codBreakdown,
+                    totalAmount: verifiedTotal,
+                  }));
+                } catch (vErr: any) {
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ success: false, valid: false, error: vErr?.message || 'Validation failed' }));
+                }
+              });
+              return;
+            }
+
             // Handle /api/create-razorpay-order in local dev
             if (req.method === 'POST' && req.url === '/api/create-razorpay-order') {
               let body = '';
@@ -35,7 +199,41 @@ export default defineConfig(({ mode }) => {
                     return;
                   }
 
-                  const { amount, currency = 'INR', receipt, notes } = data;
+                  const { amount, currency = 'INR', receipt, notes, items } = data;
+
+                  // Backend check: Verify products in cart allow UPI online payment
+                  if (Array.isArray(items) && items.length > 0) {
+                    const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/kinora-62da7/databases/(default)/documents/products';
+                    for (const item of items) {
+                      if (!item.productId) continue;
+                      try {
+                        const resp = await fetch(`${FIRESTORE_BASE}/${item.productId}`);
+                        if (resp.ok) {
+                          const docData = await resp.json();
+                          const f = docData.fields || {};
+                          const allowUPI = f.allowUPI?.booleanValue !== undefined
+                            ? f.allowUPI.booleanValue
+                            : f.paymentSettings?.mapValue?.fields?.allowUPI?.booleanValue !== undefined
+                            ? f.paymentSettings.mapValue.fields.allowUPI.booleanValue
+                            : true;
+
+                          if (allowUPI === false) {
+                            const name = f.name?.stringValue || 'Product';
+                            res.statusCode = 400;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.end(JSON.stringify({
+                              success: false,
+                              error: `Product "${name}" does not support Online Payment.`,
+                            }));
+                            return;
+                          }
+                        }
+                      } catch (fErr) {
+                        console.warn('Backend item verification note:', fErr);
+                      }
+                    }
+                  }
+
                   if (!amount || Number(amount) <= 0) {
                     res.statusCode = 400;
                     res.setHeader('Content-Type', 'application/json');

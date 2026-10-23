@@ -118,11 +118,22 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // Rule 3: Calculate applicable COD charge
-    const applicableCodCharge =
-      paymentMethod === 'cod'
-        ? Math.max(0, ...fetchedProducts.map((p) => p.codCharge || 0))
-        : 0;
+    // Rule 3: Calculate applicable COD charge by applying each unique product's configured COD charge
+    const codProductMap = new Map<string, { id: string; name: string; codCharge: number }>();
+    for (const p of fetchedProducts) {
+      if (!codProductMap.has(p.id)) {
+        codProductMap.set(p.id, {
+          id: p.id,
+          name: p.name,
+          codCharge: p.codCharge || 0,
+        });
+      }
+    }
+
+    const codBreakdown = Array.from(codProductMap.values()).filter((p) => p.codCharge > 0);
+    const applicableCodCharge = paymentMethod === 'cod'
+      ? codBreakdown.reduce((sum, item) => sum + item.codCharge, 0)
+      : 0;
 
     // Rule 4: Compute verified subtotal
     const verifiedSubtotal = fetchedProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
@@ -136,6 +147,7 @@ export default async function handler(req: any, res: any) {
       valid: true,
       subtotal: verifiedSubtotal,
       codCharge: applicableCodCharge,
+      codBreakdown,
       totalAmount: verifiedTotal,
     });
   } catch (err: any) {
