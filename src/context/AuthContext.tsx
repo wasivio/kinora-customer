@@ -103,6 +103,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveAddress = async (address: OrderAddress) => {
     if (!user) return;
     const currentAddresses = userProfile?.addresses || [];
+    
+    // Check if this identical address is already saved in profile
+    const isDuplicate = currentAddresses.some(
+      (a) =>
+        a.name?.trim().toLowerCase() === address.name?.trim().toLowerCase() &&
+        a.street?.trim().toLowerCase() === address.street?.trim().toLowerCase() &&
+        a.city?.trim().toLowerCase() === address.city?.trim().toLowerCase() &&
+        a.zip?.trim().toLowerCase() === address.zip?.trim().toLowerCase()
+    );
+    if (isDuplicate) return;
+
     const updatedAddresses = [...currentAddresses, address];
 
     try {

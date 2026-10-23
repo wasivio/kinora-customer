@@ -164,12 +164,55 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return products.find((p) => p.id === id);
   };
 
-  const getProductsByCategory = (categorySlugOrName: string) => {
-    const term = categorySlugOrName.toLowerCase();
+  const getProductsByCategory = (categorySlugOrNameOrId: string) => {
+    if (!categorySlugOrNameOrId || categorySlugOrNameOrId === 'all') return products;
+    const term = categorySlugOrNameOrId.trim().toLowerCase();
+    const cleanTerm = term.replace(/[^a-z0-9]/g, '');
+
+    // Find the category object in categories list (if exists)
+    const matchedCat = categories.find((c) => {
+      const cId = c.id.toLowerCase();
+      const cName = c.name.toLowerCase();
+      const cSlug = (c.slug || '').toLowerCase();
+      return (
+        cId === term ||
+        cName === term ||
+        cSlug === term ||
+        cName.replace(/[^a-z0-9]/g, '') === cleanTerm ||
+        (Boolean(cSlug) && cSlug.replace(/[^a-z0-9]/g, '') === cleanTerm)
+      );
+    });
+
     return products.filter((p) => {
-      const catMatch = p.category?.toLowerCase() === term || p.categoryId?.toLowerCase() === term;
-      const subMatch = p.subcategory?.toLowerCase() === term;
-      return catMatch || subMatch;
+      const pCat = (p.category || '').toLowerCase();
+      const pCatId = (p.categoryId || '').toLowerCase();
+      const pSub = (p.subcategory || '').toLowerCase();
+      const pCleanCat = pCat.replace(/[^a-z0-9]/g, '');
+      const pCleanSub = pSub.replace(/[^a-z0-9]/g, '');
+
+      // 1. Match via the resolved Category document
+      if (matchedCat) {
+        if (pCatId && pCatId === matchedCat.id.toLowerCase()) return true;
+        const matchedNameClean = matchedCat.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (pCleanCat && pCleanCat === matchedNameClean) return true;
+        if (matchedCat.slug && pCleanCat === matchedCat.slug.toLowerCase().replace(/[^a-z0-9]/g, '')) return true;
+        if (pCleanSub && pCleanSub === matchedNameClean) return true;
+      }
+
+      // 2. Direct match with query term
+      if (pCatId === term) return true;
+      if (pCat === term) return true;
+      if (pCleanCat && pCleanCat === cleanTerm) return true;
+      if (pCleanSub && pCleanSub === cleanTerm) return true;
+
+      // 3. Fallback: match tags
+      if (p.tags && Array.isArray(p.tags)) {
+        if (p.tags.some((t) => t.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTerm)) {
+          return true;
+        }
+      }
+
+      return false;
     });
   };
 

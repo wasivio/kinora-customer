@@ -9,7 +9,7 @@ import { calculateDiscountedPrice, formatCurrency } from '../lib/utils';
 
 export const ShopPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { products, categories, settings, isLoading } = useStore();
+  const { products, categories, settings, getProductsByCategory, isLoading } = useStore();
 
   const initialCategory = searchParams.get('category') || 'all';
   const initialSearch = searchParams.get('search') || '';
@@ -30,18 +30,39 @@ export const ShopPage: React.FC = () => {
     return Math.max(...products.map((p) => p.price || 0), 1000);
   }, [products]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      if (selectedCategory !== 'all') {
-        const catLower = selectedCategory.toLowerCase();
-        const pCat = product.category?.toLowerCase();
-        const pCatId = product.categoryId?.toLowerCase();
-        const pSub = product.subcategory?.toLowerCase();
-        if (pCat !== catLower && pCatId !== catLower && pSub !== catLower) {
-          return false;
-        }
-      }
+  const activeCategoryTitle = useMemo(() => {
+    if (selectedCategory === 'all') return featuredOnly ? 'BEST SELLERS' : 'ALL PRODUCTS';
+    const cleanTerm = selectedCategory.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const found = categories.find(
+      (c) =>
+        c.id.toLowerCase() === selectedCategory.toLowerCase() ||
+        c.name.toLowerCase() === selectedCategory.toLowerCase() ||
+        (Boolean(c.slug) && c.slug!.toLowerCase() === selectedCategory.toLowerCase()) ||
+        c.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTerm ||
+        (Boolean(c.slug) && c.slug!.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTerm)
+    );
+    return found ? found.name.toUpperCase() : selectedCategory.toUpperCase();
+  }, [selectedCategory, featuredOnly, categories]);
 
+  const isCategoryActive = (cat: { id: string; name: string; slug?: string }) => {
+    if (selectedCategory === 'all') return false;
+    const term = selectedCategory.toLowerCase();
+    const cleanTerm = term.replace(/[^a-z0-9]/g, '');
+    return (
+      cat.id.toLowerCase() === term ||
+      cat.name.toLowerCase() === term ||
+      (Boolean(cat.slug) && cat.slug!.toLowerCase() === term) ||
+      cat.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTerm ||
+      (Boolean(cat.slug) && cat.slug!.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTerm)
+    );
+  };
+
+  const filteredProducts = useMemo(() => {
+    const baseProducts = selectedCategory === 'all'
+      ? products
+      : getProductsByCategory(selectedCategory);
+
+    return baseProducts.filter((product) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = product.name.toLowerCase().includes(q);
@@ -87,7 +108,7 @@ export const ShopPage: React.FC = () => {
       }
       return 0;
     });
-  }, [products, selectedCategory, searchQuery, featuredOnly, inStockOnly, priceRange, sortBy]);
+  }, [products, selectedCategory, getProductsByCategory, searchQuery, featuredOnly, inStockOnly, priceRange, sortBy]);
 
   const displayedProducts = filteredProducts.slice(0, visibleCount);
 
@@ -119,11 +140,7 @@ export const ShopPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight font-display">
-              {selectedCategory !== 'all' 
-                ? `${selectedCategory.toUpperCase()}` 
-                : featuredOnly 
-                ? 'BEST SELLERS' 
-                : 'ALL PRODUCTS'}
+              {activeCategoryTitle}
             </h1>
             <p className="text-xs text-neutral-400 mt-0.5">
               Showing {filteredProducts.length} items
@@ -212,15 +229,14 @@ export const ShopPage: React.FC = () => {
                   </button>
                 </li>
                 {categories.map((cat) => {
-                  const count = products.filter(
-                    (p) => p.category?.toLowerCase() === cat.name.toLowerCase() || p.categoryId === cat.id
-                  ).length;
+                  const count = getProductsByCategory(cat.id || cat.slug || cat.name).length;
+                  const active = isCategoryActive(cat);
                   return (
                     <li key={cat.id}>
                       <button
-                        onClick={() => handleCategorySelect(cat.slug || cat.name.toLowerCase())}
+                        onClick={() => handleCategorySelect(cat.slug || cat.id || cat.name.toLowerCase())}
                         className={`w-full flex items-center justify-between py-2 px-3 rounded-xl transition-colors ${
-                          selectedCategory.toLowerCase() === (cat.slug || cat.name).toLowerCase()
+                          active
                             ? 'bg-honey text-white font-semibold shadow-sm'
                             : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
                         }`}
@@ -353,19 +369,22 @@ export const ShopPage: React.FC = () => {
                 >
                   All
                 </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleCategorySelect(cat.slug || cat.name.toLowerCase())}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      selectedCategory.toLowerCase() === (cat.slug || cat.name).toLowerCase()
-                        ? 'bg-honey text-white'
-                        : 'bg-pill-gray text-neutral-700'
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
+                {categories.map((cat) => {
+                  const active = isCategoryActive(cat);
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleCategorySelect(cat.slug || cat.id || cat.name.toLowerCase())}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        active
+                          ? 'bg-honey text-white'
+                          : 'bg-pill-gray text-neutral-700'
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

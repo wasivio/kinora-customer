@@ -12,8 +12,14 @@ export const CategoryPage: React.FC = () => {
 
   const category = useMemo(() => {
     if (!slug) return undefined;
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
     return categories.find(
-      (c) => c.slug?.toLowerCase() === slug.toLowerCase() || c.name.toLowerCase() === slug.toLowerCase()
+      (c) =>
+        c.id.toLowerCase() === slug.toLowerCase() ||
+        (Boolean(c.slug) && c.slug!.toLowerCase() === slug.toLowerCase()) ||
+        c.name.toLowerCase() === slug.toLowerCase() ||
+        c.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanSlug ||
+        (Boolean(c.slug) && c.slug!.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanSlug)
     );
   }, [categories, slug]);
 

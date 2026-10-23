@@ -45,7 +45,14 @@ export const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('');
-  const [saveThisAddress, setSaveThisAddress] = useState<boolean>(true);
+  const [saveThisAddress, setSaveThisAddress] = useState<boolean>(() => {
+    try {
+      const alreadySaved = localStorage.getItem('kinora_address_saved_once');
+      return !alreadySaved;
+    } catch {
+      return true;
+    }
+  });
 
   // Product-wise Payment Settings & Eligibility Calculations
   const codIneligibleItems = cart.filter((item) => {
@@ -115,11 +122,23 @@ export const CheckoutPage: React.FC = () => {
         zip: defaultAddr.zip || '',
         country: defaultAddr.country || 'India',
       });
+      // Already has saved address in profile: uncheck by default so user manually checks only if desired
+      setSaveThisAddress(false);
+      try {
+        localStorage.setItem('kinora_address_saved_once', 'true');
+      } catch {}
     } else if (user) {
       setFormData((prev) => ({
         ...prev,
         name: user.displayName || prev.name,
       }));
+      // First time user with no saved addresses: checked by default (starting me ek hi bar tick)
+      try {
+        const alreadySaved = localStorage.getItem('kinora_address_saved_once');
+        setSaveThisAddress(!alreadySaved);
+      } catch {
+        setSaveThisAddress(true);
+      }
     }
   }, [userProfile, user]);
 
@@ -255,6 +274,9 @@ export const CheckoutPage: React.FC = () => {
 
         if (saveThisAddress) {
           saveAddress(formData).catch(() => {});
+          try {
+            localStorage.setItem('kinora_address_saved_once', 'true');
+          } catch {}
         }
 
         clearCart();
@@ -394,6 +416,9 @@ export const CheckoutPage: React.FC = () => {
 
             if (saveThisAddress) {
               saveAddress(formData).catch(() => {});
+              try {
+                localStorage.setItem('kinora_address_saved_once', 'true');
+              } catch {}
             }
 
             clearCart();
@@ -489,7 +514,10 @@ export const CheckoutPage: React.FC = () => {
                       {userProfile.addresses.map((addr, idx) => (
                         <div
                           key={idx}
-                          onClick={() => setFormData(addr)}
+                          onClick={() => {
+                            setFormData(addr);
+                            setSaveThisAddress(false);
+                          }}
                           className={`p-3 rounded-2xl border text-xs cursor-pointer transition-all ${
                             formData.street === addr.street && formData.zip === addr.zip
                               ? 'border-honey bg-honey/5 font-medium'

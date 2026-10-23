@@ -12,6 +12,7 @@ export const HomePage: React.FC = () => {
     products, 
     categories, 
     heroBanners, 
+    getProductsByCategory,
     isLoading 
   } = useStore();
 
@@ -22,7 +23,7 @@ export const HomePage: React.FC = () => {
   const categoryPills = [
     { id: 'trending', name: 'Trending' },
     ...categories.map((c) => ({
-      id: c.slug || c.name.toLowerCase(),
+      id: c.slug || c.id || c.name.toLowerCase(),
       name: c.name,
     })),
   ];
@@ -36,15 +37,10 @@ export const HomePage: React.FC = () => {
     { id: 'lifestyle', name: 'Lifestyle' },
   ];
 
-  // Filter products by selected category
+  // Filter products by selected category using robust category resolver
   const filteredProducts = selectedCategory === 'trending'
     ? products
-    : products.filter(
-        (p) =>
-          p.category?.toLowerCase() === selectedCategory.toLowerCase() ||
-          p.categoryId?.toLowerCase() === selectedCategory.toLowerCase() ||
-          p.subcategory?.toLowerCase() === selectedCategory.toLowerCase()
-      );
+    : getProductsByCategory(selectedCategory);
 
   const nextBanner = () => {
     if (heroBanners.length > 1) {
