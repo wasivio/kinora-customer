@@ -113,7 +113,7 @@ export const ProductDetailPage: React.FC = () => {
     product.variants.some((v) => v.options && v.options.length > 0)
   );
 
-  const sizeChartUrl = useMemo(() => {
+  const sizeChartUrl = (() => {
     if (!product) return null;
     const p = product as any;
     if (p.sizeChart && typeof p.sizeChart === 'object' && p.sizeChart.url && typeof p.sizeChart.url === 'string') {
@@ -126,12 +126,12 @@ export const ProductDetailPage: React.FC = () => {
       return p.sizeChartUrl.trim();
     }
     return null;
-  }, [product]);
+  })();
 
-  const hasSizeVariant = useMemo(() => {
-    if (!product?.variants || product.variants.length === 0) return false;
-    return product.variants.some((v) => /size/i.test(v.name));
-  }, [product]);
+  const hasSizeVariant = Boolean(
+    product.variants && 
+    product.variants.some((v) => /size/i.test(v.name))
+  );
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
