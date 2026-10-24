@@ -12,7 +12,8 @@ import {
   MessageCircle,
   Sparkles,
   Banknote,
-  CreditCard
+  CreditCard,
+  Ruler
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
@@ -21,6 +22,7 @@ import { calculateDiscountedPrice, formatCurrency } from '../lib/utils';
 import { ImageZoomModal } from '../components/common/ImageZoomModal';
 import { ShareModal } from '../components/common/ShareModal';
 import { TryOnModal } from '../components/common/TryOnModal';
+import { SizeChartModal } from '../components/common/SizeChartModal';
 import { getProductWhatsAppShareUrl } from '../lib/share';
 import { ProductCard } from '../components/common/ProductCard';
 import { toast } from 'sonner';
@@ -43,6 +45,7 @@ export const ProductDetailPage: React.FC = () => {
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   const [isTryOnModalOpen, setIsTryOnModalOpen] = useState<boolean>(false);
+  const [isSizeChartOpen, setIsSizeChartOpen] = useState<boolean>(false);
 
   // Initialize selected variants from admin's actual product variants
   useEffect(() => {
@@ -109,6 +112,26 @@ export const ProductDetailPage: React.FC = () => {
     product.variants.length > 0 && 
     product.variants.some((v) => v.options && v.options.length > 0)
   );
+
+  const sizeChartUrl = useMemo(() => {
+    if (!product) return null;
+    const p = product as any;
+    if (p.sizeChart && typeof p.sizeChart === 'object' && p.sizeChart.url && typeof p.sizeChart.url === 'string') {
+      return p.sizeChart.url.trim();
+    }
+    if (typeof p.sizeChart === 'string' && p.sizeChart.trim()) {
+      return p.sizeChart.trim();
+    }
+    if (typeof p.sizeChartUrl === 'string' && p.sizeChartUrl.trim()) {
+      return p.sizeChartUrl.trim();
+    }
+    return null;
+  }, [product]);
+
+  const hasSizeVariant = useMemo(() => {
+    if (!product?.variants || product.variants.length === 0) return false;
+    return product.variants.some((v) => /size/i.test(v.name));
+  }, [product]);
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
@@ -389,6 +412,7 @@ export const ProductDetailPage: React.FC = () => {
               {product.variants!.map((variant, vIdx) => {
                 if (!variant.options || variant.options.length === 0) return null;
                 const isColorVariant = /colou?r/i.test(variant.name);
+                const isSizeVariant = /size/i.test(variant.name);
                 const currentSelection = selectedVariants[variant.name] || variant.options[0];
 
                 return (
@@ -400,6 +424,19 @@ export const ProductDetailPage: React.FC = () => {
                           ({currentSelection})
                         </span>
                       </span>
+
+                      {/* View Size Chart Button next to Size Selector */}
+                      {isSizeVariant && sizeChartUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setIsSizeChartOpen(true)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-honey hover:text-honey-600 transition-all py-1 px-2.5 rounded-lg bg-honey/10 hover:bg-honey/20 active:scale-95"
+                          title="View Size Chart"
+                        >
+                          <Ruler className="w-3.5 h-3.5" />
+                          <span>View Size Chart</span>
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -522,6 +559,20 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           )}
 
+          {/* View Size Chart Button (if product has size chart but no size variant selector) */}
+          {sizeChartUrl && !hasSizeVariant && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setIsSizeChartOpen(true)}
+                className="w-full py-3 px-4 rounded-2xl border border-honey/40 bg-honey/5 hover:bg-honey/10 text-honey-600 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 transition-all active:scale-[0.99]"
+              >
+                <Ruler className="w-4 h-4 text-honey" />
+                <span>View Size Chart & Measurements</span>
+              </button>
+            </div>
+          )}
+
           {/* Virtual AI Try-On / Fitting Room Banner (Coming Soon) */}
           <div className="pt-2">
             <button
@@ -626,6 +677,13 @@ export const ProductDetailPage: React.FC = () => {
         isOpen={isTryOnModalOpen}
         onClose={() => setIsTryOnModalOpen(false)}
         product={product}
+      />
+
+      <SizeChartModal
+        isOpen={isSizeChartOpen}
+        onClose={() => setIsSizeChartOpen(false)}
+        sizeChartUrl={sizeChartUrl}
+        productName={product.name}
       />
 
     </div>
