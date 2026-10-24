@@ -13,7 +13,9 @@ import {
   Sparkles,
   Banknote,
   CreditCard,
-  Ruler
+  Ruler,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
@@ -46,6 +48,7 @@ export const ProductDetailPage: React.FC = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   const [isTryOnModalOpen, setIsTryOnModalOpen] = useState<boolean>(false);
   const [isSizeChartOpen, setIsSizeChartOpen] = useState<boolean>(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState<boolean>(false);
 
   // Initialize selected variants from admin's actual product variants
   useEffect(() => {
@@ -62,6 +65,7 @@ export const ProductDetailPage: React.FC = () => {
     }
     setSelectedImageIndex(0);
     setQuantity(1);
+    setIsDescriptionExpanded(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [product]);
 
@@ -131,6 +135,11 @@ export const ProductDetailPage: React.FC = () => {
   const hasSizeVariant = Boolean(
     product.variants && 
     product.variants.some((v) => /size/i.test(v.name))
+  );
+
+  const isLongDescription = Boolean(
+    product.description && 
+    (product.description.trim().length > 140 || product.description.split('\n').length > 3)
   );
 
   const handleAddToCart = () => {
@@ -499,9 +508,28 @@ export const ProductDetailPage: React.FC = () => {
               <span className="block text-xs font-bold text-neutral-800 mb-1.5">
                 Description
               </span>
-              <p className="text-xs text-neutral-600 leading-relaxed whitespace-pre-line">
+              <p
+                className={`text-xs text-neutral-600 leading-relaxed whitespace-pre-line transition-all duration-200 ${
+                  !isDescriptionExpanded && isLongDescription ? 'line-clamp-3' : ''
+                }`}
+              >
                 {product.description}
               </p>
+              {isLongDescription && (
+                <button
+                  type="button"
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  className="mt-1.5 text-xs font-bold text-honey hover:text-honey-600 transition-colors inline-flex items-center gap-1 active:scale-95"
+                  aria-expanded={isDescriptionExpanded}
+                >
+                  <span>{isDescriptionExpanded ? 'Less' : 'More'}</span>
+                  {isDescriptionExpanded ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
             </div>
           )}
 
