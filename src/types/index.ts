@@ -26,6 +26,12 @@ export interface Product {
   SKU: string;
   images: ProductImage[];
   variants?: ProductVariant[];
+  sizeChart?: {
+    url: string;
+    publicId?: string;
+  };
+  sizeChartUrl?: string;
+  sizeChartPublicId?: string;
   status: 'active' | 'draft' | 'out_of_stock';
   featured?: boolean;
   brand?: string;
