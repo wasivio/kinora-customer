@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { SearchModal } from '../common/SearchModal';
+import { BrandLogo } from '../common/BrandLogo';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -40,12 +41,8 @@ export const Navbar: React.FC = () => {
             
             {/* Left: Brand Logo & Navigation Links */}
             <div className="flex items-center space-x-8 shrink-0">
-              <Link to="/" className="inline-block">
-                <img
-                  src="/LOGO.png"
-                  alt="KINORA"
-                  className="h-10 w-auto object-contain"
-                />
+              <Link to="/" className="inline-block" title="ASLAM TAILOR Home">
+                <BrandLogo size="md" />
               </Link>
 
               <nav className="flex items-center space-x-6 text-sm font-semibold">
@@ -161,7 +158,7 @@ export const Navbar: React.FC = () => {
                     <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-neutral-100 shadow-xl rounded-2xl py-2 z-50 animate-fade-in text-xs">
                       <div className="px-4 py-2 border-b border-neutral-100">
                         <p className="font-semibold text-neutral-900 truncate">
-                          {user.displayName || 'KINORA Customer'}
+                          {user.displayName || 'ASLAM TAILOR Member'}
                         </p>
                         <p className="text-[11px] text-neutral-400 truncate">{user.email}</p>
                       </div>
@@ -245,7 +242,7 @@ export const Navbar: React.FC = () => {
                       <div className="absolute left-0 top-full mt-2 w-48 bg-white border border-neutral-100 shadow-xl rounded-2xl py-2 z-50 animate-fade-in text-xs">
                         <div className="px-4 py-2 border-b border-neutral-100">
                           <p className="font-semibold text-neutral-900 truncate">
-                            {user.displayName || 'KINORA Customer'}
+                            {user.displayName || 'ASLAM TAILOR Member'}
                           </p>
                           <p className="text-[11px] text-neutral-400 truncate">{user.email}</p>
                         </div>
@@ -284,14 +281,10 @@ export const Navbar: React.FC = () => {
                 )}
               </div>
 
-              {/* Center: Official KINORA Brand */}
+              {/* Center: Official ASLAM TAILOR Brand */}
               <div className="flex items-center justify-center">
-                <Link to="/" className="inline-block">
-                  <img
-                    src="/LOGO.png"
-                    alt="KINORA"
-                    className="h-8 w-auto object-contain"
-                  />
+                <Link to="/" className="inline-block" title="ASLAM TAILOR Home">
+                  <BrandLogo size="sm" />
                 </Link>
               </div>
 

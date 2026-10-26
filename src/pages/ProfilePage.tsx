@@ -44,7 +44,7 @@ export const ProfilePage: React.FC = () => {
         <div className="w-16 h-16 rounded-full bg-honey/10 text-honey flex items-center justify-center mb-4">
           <UserIcon className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold text-neutral-900 mb-2 font-display">Sign in to KINORA</h2>
+        <h2 className="text-xl font-bold text-neutral-900 mb-2 font-display">Sign in to ASLAM TAILOR</h2>
         <p className="text-xs text-neutral-500 mb-6">
           Access your profile, orders, and saved addresses.
         </p>
@@ -96,7 +96,7 @@ export const ProfilePage: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/');
-    toast.info('Signed out from KINORA');
+    toast.info('Signed out from ASLAM TAILOR');
   };
 
   const addressesCount = userProfile?.addresses?.length || 0;
@@ -161,7 +161,7 @@ export const ProfilePage: React.FC = () => {
                 )}
                 <div className="min-w-0 flex-1">
                   <h2 className="text-base sm:text-lg font-bold text-neutral-900 font-display truncate">
-                    {user.displayName || 'KINORA Member'}
+                    {user.displayName || 'ASLAM TAILOR Member'}
                   </h2>
                   <p className="text-xs text-neutral-400 truncate mt-0.5">
                     {user.email}

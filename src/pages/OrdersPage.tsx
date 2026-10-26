@@ -167,7 +167,7 @@ export const OrdersPage: React.FC = () => {
                 )}
                 <div className="min-w-0 flex-1">
                   <h2 className="text-sm sm:text-base font-bold text-neutral-900 truncate font-display">
-                    {user.displayName || 'KINORA Member'}
+                    {user.displayName || 'ASLAM TAILOR Member'}
                   </h2>
                   <p className="text-xs text-neutral-400 truncate mt-0.5">
                     {user.email}

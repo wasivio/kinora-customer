@@ -90,7 +90,7 @@ export const HomePage: React.FC = () => {
           </Link>
         </div>
 
-        {/* Hero Banner: Either Admin Banners OR Default High-End KINORA Showcase */}
+        {/* Hero Banner: Either Admin Banners OR Default High-End ASLAM TAILOR Showcase */}
         {heroBanners.length > 0 ? (
           <div className="relative w-full h-[180px] sm:h-[280px] lg:h-[360px] rounded-3xl overflow-hidden bg-black text-white shadow-sm border border-neutral-100">
             {heroBanners.map((banner, index) => (
@@ -151,7 +151,7 @@ export const HomePage: React.FC = () => {
             )}
           </div>
         ) : (
-          /* Default High-End KINORA Showcase Banner (when admin hasn't created a banner) */
+          /* Default High-End ASLAM TAILOR Showcase Banner (when admin hasn't created a banner) */
           <div className="relative w-full rounded-3xl bg-neutral-900 overflow-hidden text-white p-6 sm:p-10 lg:p-12 shadow-sm border border-neutral-800">
             <div className="relative z-10 max-w-xl space-y-3">
               <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-honey/20 border border-honey/30 text-honey-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider">

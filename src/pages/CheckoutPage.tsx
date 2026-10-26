@@ -344,7 +344,7 @@ export const CheckoutPage: React.FC = () => {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: settings.storeName || 'KINORA',
+        name: settings.storeName || 'ASLAM TAILOR',
         description: `Order #${orderNumber}`,
         image: '/LOGO.png',
         order_id: orderData.orderId,

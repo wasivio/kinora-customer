@@ -62,7 +62,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 text-xs font-mono">
-            <span className="font-display font-bold text-sm tracking-widest text-honey-600">KINORA</span>
+            <span className="font-display font-bold text-xs tracking-widest text-honey-600">ASLAM TAILOR</span>
           </div>
         )}
 

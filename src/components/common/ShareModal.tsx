@@ -107,7 +107,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 className="w-full h-full object-contain" 
               />
             ) : (
-              <span className="text-[10px] font-bold text-neutral-400 font-display">KINORA</span>
+              <span className="text-[9px] font-bold text-neutral-400 font-display">ASLAM TAILOR</span>
             )}
           </div>
           <div className="min-w-0 flex-1">

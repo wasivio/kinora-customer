@@ -354,7 +354,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
 
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 12px sans-serif';
-      ctx.fillText('KINORA Virtual Try-On', bX + 12, bY + 21);
+      ctx.fillText('ASLAM TAILOR Virtual Try-On', bX + 12, bY + 21);
       ctx.restore();
 
       const finalDataUrl = canvas.toDataURL('image/jpeg', 0.94);
@@ -383,7 +383,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
     if (!resultImage) return;
     const a = document.createElement('a');
     a.href = resultImage;
-    a.download = `kinora-${product.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-tryon.jpg`;
+    a.download = `aslam-tailor-${product.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-tryon.jpg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -393,14 +393,14 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
   // Share photo with friends via WhatsApp or Web Share API
   const handleShare = async () => {
     const productUrl = getProductShareUrl(product.id);
-    const message = `Check out my look with *${product.name}* on KINORA!\n👉 View product here: ${productUrl}`;
+    const message = `Check out my look with *${product.name}* on ASLAM TAILOR!\n👉 View product here: ${productUrl}`;
 
     // If native sharing with files is supported
     if (resultImage && typeof navigator !== 'undefined' && navigator.canShare) {
       try {
         const res = await fetch(resultImage);
         const blob = await res.blob();
-        const file = new File([blob], 'kinora-tryon.jpg', { type: 'image/jpeg' });
+        const file = new File([blob], 'aslam-tailor-tryon.jpg', { type: 'image/jpeg' });
 
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
@@ -939,7 +939,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
                       <div className="flex items-center space-x-1.5 pt-1 border-t border-neutral-100">
                         <a
                           href={look.imageUri}
-                          download={`kinora-${look.id}.jpg`}
+                          download={`aslam-tailor-${look.id}.jpg`}
                           className="flex-1 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-bold text-center flex items-center justify-center space-x-1"
                         >
                           <Download className="w-3 h-3" />

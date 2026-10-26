@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const newProfile: UserProfile = {
               uid: currentUser.uid,
               email: currentUser.email || '',
-              displayName: currentUser.displayName || 'KINORA Customer',
+              displayName: currentUser.displayName || 'ASLAM TAILOR Customer',
               photoURL: currentUser.photoURL || '',
               addresses: [],
               createdAt: new Date().toISOString(),
@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserProfile({
             uid: currentUser.uid,
             email: currentUser.email || '',
-            displayName: currentUser.displayName || 'KINORA Customer',
+            displayName: currentUser.displayName || 'ASLAM TAILOR Customer',
             photoURL: currentUser.photoURL || '',
             addresses: [],
           });
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newProfile: UserProfile = {
           uid: loggedInUser.uid,
           email: loggedInUser.email || '',
-          displayName: loggedInUser.displayName || 'KINORA Customer',
+          displayName: loggedInUser.displayName || 'ASLAM TAILOR Customer',
           photoURL: loggedInUser.photoURL || '',
           addresses: [],
           createdAt: new Date().toISOString(),

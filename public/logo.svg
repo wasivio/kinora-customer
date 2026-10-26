@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 70" fill="none">
+  <defs>
+    <linearGradient id="atGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="40%" stop-color="#E8A048" />
+      <stop offset="100%" stop-color="#C27803" />
+    </linearGradient>
+    <linearGradient id="atDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E2024" />
+      <stop offset="100%" stop-color="#0A0B0D" />
+    </linearGradient>
+  </defs>
+
+  <!-- Crest Emblem (Left) -->
+  <g transform="translate(6, 6)">
+    <!-- Outer Shield / Circle Base -->
+    <rect x="1" y="1" width="56" height="56" rx="16" fill="url(#atDark)" stroke="url(#atGold)" stroke-width="1.75" />
+    
+    <!-- Fine Tailor Stitches Inner Border -->
+    <rect x="5.5" y="5.5" width="47" height="47" rx="12" fill="none" stroke="url(#atGold)" stroke-width="1" stroke-dasharray="3.5,2" opacity="0.85" />
+
+    <!-- Sewing Needle (Forms Vertical Stem of T) -->
+    <path d="M29 13 L29 45" stroke="url(#atGold)" stroke-width="2.2" stroke-linecap="round" />
+    <!-- Needle Eye -->
+    <ellipse cx="29" cy="18" rx="0.75" ry="2.2" fill="#0A0B0D" stroke="url(#atGold)" stroke-width="0.8" />
+    <!-- Needle Point -->
+    <polygon points="28,43 29,46 30,43" fill="url(#atGold)" />
+
+    <!-- Capital Letter A (Overlapping with T) -->
+    <path d="M19 43 L29 16 L39 43" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Crossbar of A (Tailor's Golden Measuring Ribbon) -->
+    <path d="M23 32 L35 32" stroke="url(#atGold)" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Top Bar of T -->
+    <path d="M17 16 L41 16" stroke="url(#atGold)" stroke-width="2.6" stroke-linecap="round" />
+
+    <!-- Flowing Thread Through Needle Eye -->
+    <path d="M29 18 C35 12, 44 14, 43 22 C41 28, 31 24, 23 27 C18 29, 17 36, 20 38" fill="none" stroke="#FDE68A" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="3.5,1.5" opacity="0.9" />
+
+    <!-- 4 Corner Tailor Studs -->
+    <circle cx="10" cy="10" r="1.2" fill="url(#atGold)" />
+    <circle cx="48" cy="10" r="1.2" fill="url(#atGold)" />
+    <circle cx="10" cy="48" r="1.2" fill="url(#atGold)" />
+    <circle cx="48" cy="48" r="1.2" fill="url(#atGold)" />
+  </g>
+
+  <!-- Brand Typography: ASLAM TAILOR -->
+  <g transform="translate(74, 9)">
+    <!-- Brand Name: ASLAM -->
+    <text x="0" y="24" font-family="'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="22" letter-spacing="2.5" fill="#0F172A">
+      ASLAM
+    </text>
+
+    <!-- Sub-brand: TAILOR in Premium Honey Gold -->
+    <text x="1" y="41" font-family="'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="12.5" letter-spacing="4.5" fill="url(#atGold)">
+      TAILOR
+    </text>
+
+    <!-- Tagline: BESPOKE & LUXURY APPAREL -->
+    <text x="1" y="52" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="7" letter-spacing="2.2" fill="#64748B">
+      BESPOKE &amp; APPAREL
+    </text>
+  </g>
+</svg>

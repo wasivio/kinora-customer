@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, ArrowLeft } from 'lucide-react';
+import { BrandLogo } from '../components/common/BrandLogo';
 import { toast } from 'sonner';
 
 export const LoginPage: React.FC = () => {
@@ -19,7 +20,7 @@ export const LoginPage: React.FC = () => {
   const handleGoogleSignIn = async () => {
     try {
       await loginWithGoogle();
-      toast.success('Welcome to KINORA');
+      toast.success('Welcome to ASLAM TAILOR');
       navigate(redirectPath);
     } catch (error: any) {
       console.error('Sign-in error:', error);
@@ -33,21 +34,17 @@ export const LoginPage: React.FC = () => {
         
         {/* Brand Logo */}
         <div className="flex justify-center">
-          <Link to="/">
-            <img
-              src="/LOGO.png"
-              alt="KINORA"
-              className="h-10 w-auto object-contain hover:opacity-90 transition-opacity"
-            />
+          <Link to="/" title="ASLAM TAILOR">
+            <BrandLogo size="lg" />
           </Link>
         </div>
 
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight font-display">
-            Sign In to KINORA
+            Sign In to ASLAM TAILOR
           </h1>
           <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
-            Fashion confidence and reveals beauty. Access your orders, wishlist, and seamless checkout.
+            Bespoke tailoring, handcrafted excellence, and modern apparel. Access your orders, addresses, and wishlist.
           </p>
         </div>
 

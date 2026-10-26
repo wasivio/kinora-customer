@@ -48,7 +48,7 @@ export const getProductWhatsAppShareUrl = (
   formattedPrice: string
 ): string => {
   const url = getProductShareUrl(product.id);
-  const text = `🛍️ Check out *${product.name}* on KINORA!\nPrice: *${formattedPrice}*\n\n👉 View & Order here:\n${url}`;
+  const text = `🛍️ Check out *${product.name}* on ASLAM TAILOR!\nPrice: *${formattedPrice}*\n\n👉 View & Order here:\n${url}`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 };
 
@@ -60,7 +60,7 @@ export const getProductTwitterShareUrl = (
   formattedPrice: string
 ): string => {
   const url = getProductShareUrl(product.id);
-  const text = `Check out ${product.name} on KINORA (${formattedPrice})!`;
+  const text = `Check out ${product.name} on ASLAM TAILOR (${formattedPrice})!`;
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 };
 
@@ -91,7 +91,7 @@ export const triggerNativeShare = async (
   try {
     await navigator.share({
       title: product.name,
-      text: `Check out ${product.name} on KINORA (${formattedPrice})!`,
+      text: `Check out ${product.name} on ASLAM TAILOR (${formattedPrice})!`,
       url,
     });
     return true;

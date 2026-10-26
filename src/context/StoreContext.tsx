@@ -10,8 +10,8 @@ import { db } from '../lib/firebase';
 import { Product, Category, Banner, Coupon, StoreSettings } from '../types';
 
 const defaultSettings: StoreSettings = {
-  storeName: 'KINORA',
-  storeEmail: 'contact@kinora.com',
+  storeName: 'ASLAM TAILOR',
+  storeEmail: 'contact@aslamtailor.com',
   storePhone: '+91 8810519646',
   currency: 'INR',
   currencySymbol: '₹',
@@ -139,7 +139,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         settingsDocRef,
         (snapshot) => {
           if (snapshot.exists()) {
-            setSettings({ ...defaultSettings, ...(snapshot.data() as Partial<StoreSettings>) });
+            const data = snapshot.data() as Partial<StoreSettings>;
+            const storeName = (!data.storeName || data.storeName.toUpperCase() === 'KINORA') ? 'ASLAM TAILOR' : data.storeName;
+            setSettings({ ...defaultSettings, ...data, storeName });
           }
         },
         (err) => console.error('Settings listener error:', err)

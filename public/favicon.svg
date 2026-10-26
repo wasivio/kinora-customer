@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="favGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="40%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="favDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181B" />
+      <stop offset="100%" stop-color="#09090B" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Shield / Circle Base -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#favDark)" stroke="url(#favGold)" stroke-width="2.5" />
+  
+  <!-- Fine Tailor Stitches Inner Border -->
+  <rect x="7" y="7" width="50" height="50" rx="12" fill="none" stroke="url(#favGold)" stroke-width="1.2" stroke-dasharray="3.5,2" opacity="0.9" />
+
+  <!-- Sewing Needle (Forms Vertical Stem of T) -->
+  <path d="M32 14 L32 50" stroke="url(#favGold)" stroke-width="2.6" stroke-linecap="round" />
+  <!-- Needle Eye -->
+  <ellipse cx="32" cy="20" rx="0.9" ry="2.4" fill="#09090B" stroke="url(#favGold)" stroke-width="0.9" />
+  <!-- Needle Point -->
+  <polygon points="31,48 32,51 33,48" fill="url(#favGold)" />
+
+  <!-- Capital Letter A (Overlapping with T) -->
+  <path d="M20 48 L32 17 L44 48" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Crossbar of A -->
+  <path d="M25 36 L39 36" stroke="url(#favGold)" stroke-width="2.4" stroke-linecap="round" />
+
+  <!-- Top Bar of T -->
+  <path d="M18 17 L46 17" stroke="url(#favGold)" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Thread Flowing Through Needle Eye -->
+  <path d="M32 20 C38 14, 49 16, 48 24 C46 31, 35 27, 26 30 C20 32, 19 40, 23 42" fill="none" stroke="#FEF08A" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="3.5,1.5" opacity="0.95" />
+
+  <!-- 4 Corner Tailor Studs -->
+  <circle cx="11.5" cy="11.5" r="1.5" fill="url(#favGold)" />
+  <circle cx="52.5" cy="11.5" r="1.5" fill="url(#favGold)" />
+  <circle cx="11.5" cy="52.5" r="1.5" fill="url(#favGold)" />
+  <circle cx="52.5" cy="52.5" r="1.5" fill="url(#favGold)" />
+</svg>

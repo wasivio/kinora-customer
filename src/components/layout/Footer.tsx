@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Truck, RefreshCw, Mail } from 'lucide-react';
+import { BrandLogo } from '../common/BrandLogo';
 import { toast } from 'sonner';
 
 export const Footer: React.FC = () => {
@@ -12,7 +13,7 @@ export const Footer: React.FC = () => {
       toast.error('Please enter a valid email address');
       return;
     }
-    toast.success('Thank you for subscribing to KINORA updates.');
+    toast.success('Thank you for subscribing to ASLAM TAILOR updates.');
     setEmail('');
   };
 
@@ -58,16 +59,11 @@ export const Footer: React.FC = () => {
           
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
-            <Link to="/" className="inline-block">
-              {/* Logo with inverted filter to appear crisp white on black background */}
-              <img
-                src="/LOGO.png"
-                alt="KINORA"
-                className="h-10 w-auto object-contain filter invert brightness-200"
-              />
+            <Link to="/" className="inline-block" title="ASLAM TAILOR">
+              <BrandLogo variant="dark" size="lg" />
             </Link>
             <p className="text-neutral-400 text-xs sm:text-sm leading-relaxed max-w-sm">
-              KINORA represents refined modern essentials designed with uncompromising minimalism, durability, and timeless elegance.
+              ASLAM TAILOR represents refined bespoke craftsmanship, modern tailored essentials, and timeless elegance.
             </p>
           </div>
 
@@ -155,7 +151,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="border-t border-neutral-900 pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-neutral-500 space-y-4 sm:space-y-0">
-          <p>© {new Date().getFullYear()} KINORA. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} ASLAM TAILOR. All rights reserved.</p>
           <div className="flex space-x-6">
             <span>Privacy Policy</span>
             <span>Terms of Service</span>

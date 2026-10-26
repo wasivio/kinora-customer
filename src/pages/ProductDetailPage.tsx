@@ -304,7 +304,7 @@ export const ProductDetailPage: React.FC = () => {
                 />
               ) : (
                 <div className="text-honey-900 font-bold text-lg font-display tracking-wider">
-                  KINORA
+                  ASLAM TAILOR
                 </div>
               )}
 

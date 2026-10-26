@@ -92,7 +92,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
         <div className="max-h-[60vh] overflow-y-auto p-4 divide-y divide-neutral-100">
           {query.trim() === '' ? (
             <div className="py-8 text-center text-neutral-400 text-sm">
-              Type to search for products in the KINORA catalog...
+              Type to search for products in the ASLAM TAILOR catalog...
             </div>
           ) : filteredProducts.length > 0 ? (
             <div>
@@ -112,7 +112,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                       {primaryImage ? (
                         <img src={primaryImage} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-neutral-400">KINORA</div>
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-400 font-bold text-center px-1">ASLAM TAILOR</div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
