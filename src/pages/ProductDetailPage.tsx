@@ -162,15 +162,15 @@ export const ProductDetailPage: React.FC = () => {
 
   const relatedProducts = products
     .filter((p) => p.id !== product.id && p.category === product.category)
-    .slice(0, 4);
+    .slice(0, 8);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFC] pb-32">
+    <div className="min-h-screen bg-[#FAFAFC] pb-24 sm:pb-32">
       
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Top Floating Bar: Back Button, Title "Details", Wishlist Heart (Screen 2) */}
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+        {/* Mobile Top Floating Bar */}
+        <div className="lg:hidden pt-4 pb-2 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
             className="w-10 h-10 rounded-full bg-white shadow-sm border border-neutral-100 flex items-center justify-center text-neutral-800 hover:bg-neutral-50 active:scale-95 transition-all"
@@ -213,88 +213,176 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Hero Showcase with #f5f5f5 Background and Stacked Thumbnails (Screen 2) */}
-        <div className="relative mx-4 mt-2 h-[300px] sm:h-[380px] rounded-3xl bg-[#f5f5f5] overflow-hidden p-6 flex items-center justify-center">
-          
-          {/* Admin Badges on Showcase: Discount or Out of Stock */}
-          <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
-            {isOutOfStock ? (
-              <span className="px-3 py-1 rounded-full bg-charcoal text-white text-xs font-bold uppercase tracking-wider backdrop-blur-sm shadow-sm">
-                Out of Stock
+        {/* Desktop Breadcrumb & Navigation Bar */}
+        <div className="hidden lg:flex items-center justify-between py-4 mb-2 border-b border-neutral-200/60">
+          <div className="flex items-center space-x-3 text-xs">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white border border-neutral-200/80 text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 font-semibold transition-all shadow-xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+
+            <nav className="flex items-center space-x-2 text-neutral-400 font-medium">
+              <Link to="/" className="hover:text-neutral-800 transition-colors">Home</Link>
+              <span>/</span>
+              <Link to="/shop" className="hover:text-neutral-800 transition-colors">Shop</Link>
+              {product.category && (
+                <>
+                  <span>/</span>
+                  <Link to={`/category/${encodeURIComponent(product.category)}`} className="hover:text-neutral-800 transition-colors capitalize">
+                    {product.category}
+                  </Link>
+                </>
+              )}
+              <span>/</span>
+              <span className="text-neutral-900 font-bold truncate max-w-sm">
+                {product.name}
               </span>
-            ) : hasDiscount ? (
-              <span className="px-3 py-1 rounded-full bg-honey text-white text-xs font-bold tracking-tight shadow-sm">
-                -{product.discount}% OFF
-              </span>
-            ) : null}
+            </nav>
           </div>
 
-          {images.length > 0 ? (
-            <img
-              src={images[selectedImageIndex]}
-              alt={product.name}
-              className="max-h-full max-w-[80%] object-contain drop-shadow-md cursor-zoom-in transition-transform duration-300 hover:scale-105"
-              onClick={() => setIsZoomModalOpen(true)}
-            />
-          ) : (
-            <div className="text-honey-900 font-bold text-lg font-display tracking-wider">
-              KINORA
-            </div>
-          )}
+          <div className="flex items-center space-x-2.5">
+            <button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-white border border-neutral-200/80 text-neutral-700 hover:bg-neutral-50 font-semibold text-xs transition-all shadow-xs"
+            >
+              <Share2 className="w-3.5 h-3.5 text-neutral-600" />
+              <span>Share</span>
+            </button>
 
-          {/* Zoom Trigger (only if image exists) */}
-          {images.length > 0 && (
-            <div className="absolute bottom-3 left-3 flex items-center space-x-2">
-              <button
-                onClick={() => setIsZoomModalOpen(true)}
-                className="p-2 rounded-full bg-white/90 hover:bg-white text-neutral-700 shadow-sm transition-colors"
-                title="Zoom image"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Floating Virtual Try-On Badge on Image (Coming Soon) */}
-          {images.length > 0 && (
             <button
               type="button"
               onClick={() => {
-                toast.info('✨ Virtual AI Try-On (Fitting Room) is coming soon! Stay tuned.');
+                toggleWishlist(product);
+                if (isWished) {
+                  toast.info('Removed from wishlist');
+                } else {
+                  toast.success('Saved to wishlist');
+                }
               }}
-              className="absolute bottom-3 right-3 sm:right-4 z-10 px-3.5 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-900 text-white text-xs font-bold shadow-md backdrop-blur-md flex items-center space-x-1.5 active:scale-95 transition-all"
-              title="Virtual AI Fitting Room (Coming Soon)"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-white border border-neutral-200/80 text-neutral-700 hover:bg-neutral-50 font-semibold text-xs transition-all shadow-xs"
             >
-              <Sparkles className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>Try On</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/25 text-amber-300 text-[9px] font-semibold tracking-wide">
-                Coming Soon
-              </span>
+              <Heart 
+                className={`w-3.5 h-3.5 ${
+                  isWished ? 'fill-honey text-honey stroke-honey' : 'text-neutral-500'
+                }`} 
+              />
+              <span>{isWished ? 'Wishlisted' : 'Wishlist'}</span>
             </button>
-          )}
-
-          {/* Stacked Vertical Thumbnails on the Right (ONLY if admin uploaded multiple images) */}
-          {images.length > 1 && (
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex flex-col space-y-2 z-10 max-h-[85%] overflow-y-auto scrollbar-none py-1">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  className={`w-12 h-12 rounded-xl overflow-hidden border-2 bg-white/40 backdrop-blur-sm p-1 transition-all shrink-0 ${
-                    selectedImageIndex === idx
-                      ? 'border-white scale-105 shadow-md'
-                      : 'border-white/50 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img src={img} alt="" className="w-full h-full object-contain" />
-                </button>
-              ))}
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Details White Container (Screen 2) */}
-        <div className="bg-white rounded-3xl p-6 mx-4 mt-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-neutral-100 space-y-5">
+        {/* Responsive 2-Column Split: Left is Image Gallery, Right is Details Panel */}
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8 xl:gap-10 lg:items-start mt-2">
+          
+          {/* Left Column: Image Showcase & Gallery (7 cols on desktop) */}
+          <div className="lg:col-span-7 lg:sticky lg:top-24 space-y-3">
+            <div className="relative h-[320px] sm:h-[400px] lg:h-[540px] rounded-3xl bg-[#f5f5f5] overflow-hidden p-6 lg:p-8 flex items-center justify-center border border-neutral-100 shadow-xs">
+              
+              {/* Admin Badges on Showcase: Discount or Out of Stock */}
+              <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
+                {isOutOfStock ? (
+                  <span className="px-3 py-1 rounded-full bg-charcoal text-white text-xs font-bold uppercase tracking-wider backdrop-blur-sm shadow-sm">
+                    Out of Stock
+                  </span>
+                ) : hasDiscount ? (
+                  <span className="px-3 py-1 rounded-full bg-honey text-white text-xs font-bold tracking-tight shadow-sm">
+                    -{product.discount}% OFF
+                  </span>
+                ) : null}
+              </div>
+
+              {images.length > 0 ? (
+                <img
+                  src={images[selectedImageIndex]}
+                  alt={product.name}
+                  className="max-h-full max-w-[85%] object-contain drop-shadow-md cursor-zoom-in transition-transform duration-300 hover:scale-105"
+                  onClick={() => setIsZoomModalOpen(true)}
+                />
+              ) : (
+                <div className="text-honey-900 font-bold text-lg font-display tracking-wider">
+                  KINORA
+                </div>
+              )}
+
+              {/* Zoom Trigger (only if image exists) */}
+              {images.length > 0 && (
+                <div className="absolute bottom-3 left-3 flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsZoomModalOpen(true)}
+                    className="p-2.5 rounded-full bg-white/90 hover:bg-white text-neutral-700 shadow-sm transition-colors"
+                    title="Zoom image"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Floating Virtual Try-On Badge on Image (Coming Soon) */}
+              {images.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.info('✨ Virtual AI Try-On (Fitting Room) is coming soon! Stay tuned.');
+                  }}
+                  className="absolute bottom-3 right-3 sm:right-4 z-10 px-3.5 py-1.5 rounded-full bg-neutral-900/90 hover:bg-neutral-900 text-white text-xs font-bold shadow-md backdrop-blur-md flex items-center space-x-1.5 active:scale-95 transition-all"
+                  title="Virtual AI Fitting Room (Coming Soon)"
+                >
+                  <Sparkles className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span>Try On</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-amber-400/25 text-amber-300 text-[9px] font-semibold tracking-wide">
+                    Coming Soon
+                  </span>
+                </button>
+              )}
+
+              {/* Floating Vertical Thumbnails for Mobile */}
+              {images.length > 1 && (
+                <div className="lg:hidden absolute right-3.5 top-1/2 -translate-y-1/2 flex flex-col space-y-2 z-10 max-h-[85%] overflow-y-auto scrollbar-none py-1">
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className={`w-12 h-12 rounded-xl overflow-hidden border-2 bg-white/40 backdrop-blur-sm p-1 transition-all shrink-0 ${
+                        selectedImageIndex === idx
+                          ? 'border-white scale-105 shadow-md'
+                          : 'border-white/50 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-contain" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Horizontal Thumbnails Row */}
+            {images.length > 1 && (
+              <div className="hidden lg:flex items-center gap-3 overflow-x-auto py-1">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`w-16 h-16 rounded-2xl overflow-hidden border-2 bg-white p-1 transition-all shrink-0 ${
+                      selectedImageIndex === idx
+                        ? 'border-honey scale-105 shadow-sm'
+                        : 'border-neutral-200/80 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-contain" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Details White Container (5 cols on desktop) */}
+          <div className="lg:col-span-5 mt-4 lg:mt-0">
+            <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.03)] border border-neutral-100 space-y-5">
           
           {/* Admin Metadata: Category, Subcategory & SKU */}
           {(product.category || product.subcategory || product.SKU) && (
@@ -702,15 +790,31 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
+          </div>
+          </div>
         </div>
 
-        {/* Related Products in same Category */}
+        {/* Related Products in same Category (Full Width on Desktop) */}
         {relatedProducts.length > 0 && (
-          <div className="mx-4 mt-8">
-            <h3 className="text-sm font-bold text-neutral-900 mb-3">
-              Similar Styles
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="mt-12 lg:mt-16 pt-8 border-t border-neutral-200/60">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <div>
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold font-display text-neutral-900">
+                  Similar Styles
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Handpicked matching designs in {product.category || 'this collection'}
+                </p>
+              </div>
+              <Link
+                to={product.category ? `/category/${encodeURIComponent(product.category)}` : '/shop'}
+                className="text-xs font-bold text-honey hover:text-honey-600 transition-colors"
+              >
+                View More &rarr;
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {relatedProducts.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
